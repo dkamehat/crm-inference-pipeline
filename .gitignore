@@ -1,0 +1,68 @@
+# ------------------------------------------------------------
+# Standard Python / Jupyter
+# ------------------------------------------------------------
+.ipynb_checkpoints/
+__pycache__/
+*.pyc
+*.pyo
+*.swp
+*.egg-info/
+build/
+dist/
+
+# ------------------------------------------------------------
+# OS / Editor
+# ------------------------------------------------------------
+.DS_Store
+.idea/
+.vscode/
+*.swo
+
+# ------------------------------------------------------------
+# Virtual environments
+# ------------------------------------------------------------
+.venv/
+venv/
+env/
+.env
+.env.local
+.env.*.local
+.env.production
+
+# ------------------------------------------------------------
+# Secrets / Local state — NEVER commit
+# ------------------------------------------------------------
+*.pem
+*.key
+secrets.json
+.wrangler/
+*.sqlite
+*.sqlite-journal
+*.db
+.claude/settings.local.json
+.claude-private/
+
+# ------------------------------------------------------------
+# Personal / Private notes — by convention
+# ------------------------------------------------------------
+notes/
+my-notes-*.md
+*.private.md
+*.local.md
+TODO-private.md
+SCRATCH.md
+CLAUDE.md
+CLAUDE.local.md
+
+# ------------------------------------------------------------
+# Build artifacts
+# ------------------------------------------------------------
+build_notebook.py
+*.tmp
+.cache/
+
+# ------------------------------------------------------------
+# Generated outputs (keep notebook source only, not exported reports)
+# ------------------------------------------------------------
+*.html.bak
+nbconvert-output/
