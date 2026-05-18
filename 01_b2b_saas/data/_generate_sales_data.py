@@ -1,8 +1,7 @@
 """
-Generate synthetic Salesforce SFA-style datasets for 3 domains:
+Generate synthetic Salesforce SFA-style datasets for 2 domains:
   1. B2B SaaS (annual contracts, multi-region pipeline)
-  2. Food Delivery (merchant acquisition for a delivery platform)
-  3. EC Marketplace (seller acquisition)
+  2. EC Marketplace (seller acquisition)
 
 Schema mirrors Salesforce standard objects:
   - Accounts.csv: AccountId, AccountName, Industry, Region, Segment, AccountOwner, CreatedDate
@@ -159,97 +158,6 @@ def generate_saas():
     return len(accounts), len(opps), len(activities)
 
 
-# ===========================
-# Domain 2: Food Delivery
-# ===========================
-def generate_food_delivery():
-    domain = "02_food_delivery"
-    regions = ["Tokyo-23", "Kanto-Other", "Kansai", "Chubu", "Kyushu", "Hokkaido-Tohoku"]
-    industries = ["Ramen", "Sushi", "Yakitori", "Pizza", "Burger", "Cafe", "Izakaya",
-                  "Bento", "Curry", "Italian", "Chinese", "Korean"]
-    segments = ["Independent", "Small Chain", "National Chain", "Enterprise"]
-    segment_weights = [0.55, 0.25, 0.15, 0.05]
-    # Revenue here = expected monthly commission revenue from the merchant
-    segment_acv = {
-        "Independent": (50000, 200000),
-        "Small Chain": (200000, 800000),
-        "National Chain": (800000, 4000000),
-        "Enterprise": (4000000, 15000000),
-    }
-
-    users = make_users(12, regions, "Merchant Acquisition Manager")
-    write_csv(OUT_ROOT / domain / "Users.csv", users,
-              ["OwnerId", "OwnerName", "Role", "Region"])
-
-    accounts = []
-    for i in range(800):
-        seg = random.choices(segments, segment_weights)[0]
-        accounts.append({
-            "AccountId": f"M{i+1:05d}",
-            "AccountName": f"Merchant-{i+1:05d}",
-            "Industry": random.choice(industries),
-            "Region": random.choice(regions),
-            "Segment": seg,
-            "AccountOwner": random.choice(users)["OwnerId"],
-            "CreatedDate": daterange(date(2023, 1, 1), date(2025, 12, 31)).isoformat(),
-        })
-    write_csv(OUT_ROOT / domain / "Accounts.csv", accounts,
-              ["AccountId", "AccountName", "Industry", "Region", "Segment",
-               "AccountOwner", "CreatedDate"])
-
-    opps = []
-    opp_id = 0
-    for acc in accounts:
-        n_opps = random.choices([1, 2, 3], [0.65, 0.25, 0.10])[0]
-        for _ in range(n_opps):
-            opp_id += 1
-            created = daterange(date(2023, 1, 1), date(2026, 4, 30))
-            stage = random.choices(
-                [s[0] for s in STAGES],
-                weights=[0.08, 0.12, 0.12, 0.15, 0.08, 0.25, 0.20]
-            )[0]
-            amount_lo, amount_hi = segment_acv[acc["Segment"]]
-            amount = round(random.uniform(amount_lo, amount_hi), -3)
-            prob = next(s[1] for s in STAGES if s[0] == stage)
-            close = created + timedelta(days=random.randint(14, 120))
-            opps.append({
-                "OppId": f"DO{opp_id:06d}",
-                "AccountId": acc["AccountId"],
-                "OppName": f"{acc['AccountName']} - {random.choice(['New Onboarding', 'Plan Upgrade', 'Multi-Store Rollout', 'Promotion Add-on', 'Renewal'])}",
-                "Stage": stage,
-                "Amount": amount,
-                "Probability": prob,
-                "CreatedDate": created.isoformat(),
-                "CloseDate": close.isoformat(),
-                "OwnerId": acc["AccountOwner"],
-                "LossReason": random.choice(LOSS_REASONS) if stage == "07 - Closed Lost" else "",
-            })
-    write_csv(OUT_ROOT / domain / "Opportunities.csv", opps,
-              ["OppId", "AccountId", "OppName", "Stage", "Amount", "Probability",
-               "CreatedDate", "CloseDate", "OwnerId", "LossReason"])
-
-    activities = []
-    act_types = ["Store Visit", "Phone Call", "Email", "Demo", "Contract Sent"]
-    aid = 0
-    for opp in opps:
-        n_acts = random.randint(2, 10)
-        opp_created = date.fromisoformat(opp["CreatedDate"])
-        opp_close = date.fromisoformat(opp["CloseDate"])
-        for _ in range(n_acts):
-            aid += 1
-            activities.append({
-                "ActivityId": f"DAC{aid:07d}",
-                "OppId": opp["OppId"],
-                "ActivityType": random.choice(act_types),
-                "ActivityDate": daterange(opp_created, opp_close).isoformat(),
-                "OwnerId": opp["OwnerId"],
-                "DurationMin": random.choice([15, 30, 45, 60]),
-            })
-    write_csv(OUT_ROOT / domain / "Activities.csv", activities,
-              ["ActivityId", "OppId", "ActivityType", "ActivityDate", "OwnerId", "DurationMin"])
-
-    return len(accounts), len(opps), len(activities)
-
 
 # ===========================
 # Domain 3: EC Marketplace (Seller Acquisition)
@@ -346,8 +254,6 @@ def generate_ec_marketplace():
 if __name__ == "__main__":
     print("Generating B2B SaaS...")
     print("  Accounts: {}, Opps: {}, Activities: {}".format(*generate_saas()))
-    print("Generating Food Delivery...")
-    print("  Accounts: {}, Opps: {}, Activities: {}".format(*generate_food_delivery()))
     print("Generating EC Marketplace...")
     print("  Accounts: {}, Opps: {}, Activities: {}".format(*generate_ec_marketplace()))
     print("\nAll datasets generated under:", OUT_ROOT)

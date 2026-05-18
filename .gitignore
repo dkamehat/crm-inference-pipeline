@@ -66,3 +66,12 @@ build_notebook.py
 # ------------------------------------------------------------
 *.html.bak
 nbconvert-output/
+# Temporary audit/inspection scripts (do not commit)
+audit.py
+inspect.py
+impact.py
+cleanup.py
+check_readme.py
+*_audit.py
+*_inspect.py
+*_result.txt

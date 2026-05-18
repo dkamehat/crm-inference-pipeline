@@ -17,4 +17,4 @@ In B2B SaaS, an account is acquired once and monetized over years. In EC marketp
 
 ---
 
-*Will be built after Phase 2.*
+*Will be built after Phase 1.*

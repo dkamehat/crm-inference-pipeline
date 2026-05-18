@@ -12,7 +12,7 @@
 
 This repository visualizes the design thinking behind sales operations and customer success programs, rendered as **SQL + Python + interactive charts** on synthetic data. The three business domains share one analytical framework.
 
-The work in this repository reflects design thinking applied in a current production setting — a Salesforce SFA migration at a major Japanese on-demand delivery platform, covering tens of thousands of merchants and a field sales team of roughly one hundred reps. All data and identifiers in this repository are synthetic.
+The framework in this repository reflects design thinking applied to large-scale sales operations in B2B environments. All data and identifiers in this repository are synthetic.
 
 The framework, not the domain, is the asset.
 
@@ -27,8 +27,6 @@ sales-analytics-portfolio/
 │   ├── sql/                 4 query sets (Performance, Pipeline, Accounts, CS)
 │   ├── notebooks/           Interactive Plotly analysis (Jupyter)
 │   └── images/              Static chart renders for previews
-├── 02_food_delivery/        🚧 Phase 2 — planned
-│   └── (Sales analytics + field-sales territory optimization)
 ├── 03_ec_marketplace/       🚧 Phase 3 — planned
 ├── 04_advanced_analytics/   🚧 Phase 4 — planned
 │   ├── pandas_deep_dive/    Cohort/retention/LTV with pandas
@@ -55,18 +53,6 @@ Synthetic B2B SaaS business with 800 accounts, ~1,300 opportunities, 331 active 
 | 4 | Customer Health | CS Manager | If you care about retention and renewal risk |
 
 **Open the notebook:** [`01_b2b_saas/notebooks/analysis.ipynb`](./01_b2b_saas/notebooks/analysis.ipynb) — GitHub renders the embedded Plotly charts inline.
-
----
-
-## Phase 2 — Food Delivery (🚧 Planned)
-
-Same framework applied to merchant acquisition on a delivery platform. Independent vs national chain economics, urban vs regional dynamics.
-
-Once published, expect to find:
-
-- Sales funnel and pipeline analytics (same as Phase 1)
-- **Field-sales territory analysis** — which neighborhoods to send reps to, which to call from desk
-- GMV trajectory and merchant retention by acquisition cohort
 
 ---
 
@@ -100,7 +86,7 @@ Planned outputs:
 - **Visit-call hybrid scoring** — when is in-person visit worth the time, when is a phone call enough
 - **Routing efficiency** — given a rep's assigned merchants, what's the optimal day plan
 
-This is the highest-impact piece for any PM/Ops role in food delivery, last-mile, or field-heavy B2B sales.
+This is the highest-impact piece for any PM/Ops role in last-mile logistics, on-demand services, or field-heavy B2B sales.
 
 ---
 

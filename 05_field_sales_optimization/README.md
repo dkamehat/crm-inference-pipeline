@@ -26,7 +26,7 @@ In practice, this allocation is driven by a stack of operational tooling (data w
 
 ## Why this matters
 
-This is the highest-impact problem in food delivery, last-mile, and any field-heavy B2B sales business.
+This is the highest-impact problem in last-mile logistics, on-demand services, and any field-heavy B2B sales business.
 
 For any role that involves field operations, capacity planning, or geographic optimization (delivery/marketplace operations, B2B field sales strategy, GTM Investments analysis, etc.), this phase is the one most worth reading.
 
