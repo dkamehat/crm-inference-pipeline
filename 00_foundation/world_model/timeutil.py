@@ -25,3 +25,9 @@ def month_index_minus_days(start_y: int, start_m: int, idx: int, days: int) -> s
     yy, mm, _ = base.split("-")
     d = datetime.date(int(yy), int(mm), 1) - datetime.timedelta(days=days)
     return d.isoformat()
+
+
+def add_days(iso_date: str, days: int) -> str:
+    """ISO date `days` after `iso_date` (used for day-level recorded close timing)."""
+    y, m, d = (int(x) for x in iso_date.split("-"))
+    return (datetime.date(y, m, d) + datetime.timedelta(days=days)).isoformat()

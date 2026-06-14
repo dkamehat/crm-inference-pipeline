@@ -25,6 +25,19 @@ loss check.
 - **Fix when revisited:** when V2 lands, drive those expectations from the
   profile / manifest instead of literals, so one harness serves every profile.
 
+## B — PDCA should learn from the realized rate, not nudge toward true directly
+`AssumedScoreModel.pdca_update` nudges the assumed category weight toward the
+hidden `true_cat_w` directly (gated on `tot >= 5` as a "enough signal" proxy),
+rather than toward the *realized* win-rate-by-category computed from the data.
+
+- **Impact today:** correct for the thin slice — with `overfit_pull = 0` the world
+  converges cleanly, which is what V1 wants. But it means signal ⑩ (weight-gap
+  convergence) is partly *by construction* rather than learned from observed
+  outcomes, so it is a weaker demonstration of "learning from data".
+- **Fix when revisited:** when `overfit_pull` is enabled (B), drive the update
+  from the realized win-rate-by-category (with noise/vanity-signal following), so
+  convergence — and the over-fitting failure mode — emerge from the data.
+
 ## B — auto-close interaction at long horizons
 The days-open cap (`stage_lag_cap_days`) auto-closes the open tail as lost. In
 the 18-period thin slice this is effectively inert (the window bounds days-open

@@ -19,7 +19,7 @@ from pathlib import Path
 import pandas as pd
 
 from .config import STAGES, TERMINAL_STAGES
-from .timeutil import month_index_to_date, month_index_minus_days
+from .timeutil import add_days
 
 
 def emit(wm, out_dir) -> Path:
@@ -44,11 +44,15 @@ def emit(wm, out_dir) -> Path:
         acc = wm.acc_by_id[o["AccountId"]]
         if o["_closed"]:
             rec_stage = STAGES[o["_true_stage_idx"]]                    # terminal stage as recorded
-            offset = wm.reps.close_optimism_offset(wm.rng)             # recorded close pulled earlier
-            close_date = month_index_minus_days(cfg.start_year, cfg.start_month, o["_rec_close_idx"], offset)
-            # optimism may pull the close earlier WITHIN the deal's life, never before
-            # it began — clamp to the opp's creation (ISO strings compare chronologically).
-            close_date = max(o["CreatedDate"], close_date)
+            # Day-level recorded close: whole-month gap to the recorded close period
+            # plus a positive within-month offset, with close-optimism pulling earlier.
+            # A positive cycle is always preserved (>= 1 day), so same-period closes
+            # spread realistically instead of piling onto the creation date (no 0-day mass).
+            months_gap = max(0, o["_rec_close_idx"] - o["_created_idx"])
+            within = wm.rng.randint(3, 25)                              # within-month day offset
+            optimism = wm.reps.close_optimism_offset(wm.rng)           # recorded close pulled earlier
+            cycle_days = max(1, months_gap * 30 + within - optimism)
+            close_date = add_days(o["CreatedDate"], cycle_days)
         else:
             rec_idx = wm.reps.recorded_open_stage_idx(o["_true_stage_idx"], wm.rng)  # happy-ears
             rec_stage = STAGES[rec_idx]

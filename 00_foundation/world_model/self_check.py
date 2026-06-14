@@ -70,12 +70,19 @@ def run_checks(out_dir: str) -> List[Check]:
           (m["CloseDate"].dt.month - m["acc_created"].dt.month)
     check("③ cohort months_since >= 0", (msc >= 0).all(), f"min_msc={int(msc.min())}")
 
-    # ④ days-open capped (no impossible 1,200-day stuck); "today" derived from the data
+    # ④ dwell realistic on BOTH tails: open opps not stuck for 1,200 days (upper),
+    #    and closed opps not piled onto a 0-day same-day cycle (lower). "today" from data.
     openo = opp[~opp.Stage.isin([WON_STAGE, LOST_STAGE])].copy()
     today = opp["CreatedDate"].max() + pd.Timedelta(days=45)
     openo["days_open"] = (today - openo["CreatedDate"]).dt.days
     maxd = openo["days_open"].max() if len(openo) else 0
-    check("④ days-open realistic (<700, no 1200d)", maxd < 700, f"max_days_open={maxd}")
+    closed_dur = (won["CloseDate"] - won["CreatedDate"]).dt.days
+    lost_dur = (pd.to_datetime(lost["CloseDate"]) - pd.to_datetime(lost["CreatedDate"])).dt.days
+    cyc = pd.concat([closed_dur, lost_dur]).dropna()
+    zero_ratio = (cyc <= 0).mean() if len(cyc) else 0
+    check("④ dwell realistic (open<700d, same-day closes<15%)",
+          maxd < 700 and zero_ratio < 0.15,
+          f"max_open={maxd}, 0day_close={zero_ratio:.1%}, cycle_median={cyc.median():.0f}d")
 
     # ⑤ activation correlation usage <-> health
     um = usage.groupby("AccountId")["MAURatio"].mean().reset_index()

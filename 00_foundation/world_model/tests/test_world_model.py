@@ -113,6 +113,36 @@ def test_autoclose_side_effects_consistent(dataset):
         "Closed Won opp carries a LossReason"
 
 
+def test_close_cycle_lower_tail(dataset):
+    """Dwell realism on the LOWER tail: closes must not pile onto a 0-day same-day
+    cycle (the clamp-induced artifact). Guards defect #4 from the fast end."""
+    opp = pd.read_csv(dataset / "opportunities.csv")
+    closed = opp[opp.Stage.isin([WON_STAGE, LOST_STAGE])].copy()
+    closed = closed[closed.CloseDate.astype(str).str.len() > 0]
+    cyc = (pd.to_datetime(closed["CloseDate"]) - pd.to_datetime(closed["CreatedDate"])).dt.days
+    zero_ratio = (cyc <= 0).mean()
+    assert zero_ratio < 0.15, f"too many 0-day closes: {zero_ratio:.1%} (cycle median {cyc.median():.0f}d)"
+
+
+@pytest.mark.parametrize("seed", [42, 7, 123])
+def test_temporal_invariants_multi_seed(tmp_path, seed):
+    """Harden the temporal triangle across seeds (the prior bugs were ~40% prevalence,
+    but cheap multi-seed coverage guards against seed-specific regressions)."""
+    out = _generate(tmp_path / f"s{seed}", seed=seed)
+    acc = pd.read_csv(out / "accounts.csv")[["AccountId", "CreatedDate"]]
+    opp = pd.read_csv(out / "opportunities.csv")
+    closed = opp[opp.Stage.isin([WON_STAGE, LOST_STAGE])].copy()
+    closed = closed[closed.CloseDate.astype(str).str.len() > 0]
+    m = closed.merge(acc.rename(columns={"CreatedDate": "acc_created"}), on="AccountId")
+    acc_c = pd.to_datetime(m["acc_created"])
+    opp_c = pd.to_datetime(m["CreatedDate"])
+    close_c = pd.to_datetime(m["CloseDate"])
+    assert (acc_c <= opp_c).all(), f"[seed {seed}] account.created > opp.created"
+    assert (opp_c <= close_c).all(), f"[seed {seed}] opp.created > close"
+    cyc = (close_c - opp_c).dt.days
+    assert (cyc <= 0).mean() < 0.15, f"[seed {seed}] too many 0-day closes"
+
+
 def test_days_open_capped(dataset):
     opp = pd.read_csv(dataset / "opportunities.csv")
     opp["CreatedDate"] = pd.to_datetime(opp["CreatedDate"])
