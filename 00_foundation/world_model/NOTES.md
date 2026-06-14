@@ -38,6 +38,19 @@ rather than toward the *realized* win-rate-by-category computed from the data.
   from the realized win-rate-by-category (with noise/vanity-signal following), so
   convergence — and the over-fitting failure mode — emerge from the data.
 
+## L1 note — recorded close month may drift +/-1 (day-level approximation)
+The recorded close date is reconstructed at day granularity as
+`created + months_gap*30 + within_offset - bounded_optimism`. Because months are
+approximated as 30 days (plus the within-month jitter and optimism), the recorded
+close *month* can drift by about +/-1 from the recorded close *period*.
+
+- **Not a bug** — a deliberate day-level realism approximation (it removed the
+  0-day / 1-day close pile-ups). It does mean the planted seasonality is very
+  slightly smeared in the observed data vs. the exact first-of-month it used to
+  carry. Signal (1) still recovers (CV ~0.31).
+- **For L1:** when recovering seasonality, expect a small amount of month
+  smearing; aggregate at the quarter level or smooth if a sharper read is needed.
+
 ## B — auto-close interaction at long horizons
 The days-open cap (`stage_lag_cap_days`) auto-closes the open tail as lost. In
 the 18-period thin slice this is effectively inert (the window bounds days-open

@@ -76,13 +76,17 @@ def run_checks(out_dir: str) -> List[Check]:
     today = opp["CreatedDate"].max() + pd.Timedelta(days=45)
     openo["days_open"] = (today - openo["CreatedDate"]).dt.days
     maxd = openo["days_open"].max() if len(openo) else 0
-    closed_dur = (won["CloseDate"] - won["CreatedDate"]).dt.days
+    closed_dur = (pd.to_datetime(won["CloseDate"]) - pd.to_datetime(won["CreatedDate"])).dt.days
     lost_dur = (pd.to_datetime(lost["CloseDate"]) - pd.to_datetime(lost["CreatedDate"])).dt.days
     cyc = pd.concat([closed_dur, lost_dur]).dropna()
-    zero_ratio = (cyc <= 0).mean() if len(cyc) else 0
-    check("④ dwell realistic (open<700d, same-day closes<15%)",
-          maxd < 700 and zero_ratio < 0.15,
-          f"max_open={maxd}, 0day_close={zero_ratio:.1%}, cycle_median={cyc.median():.0f}d")
+    # Guard the SHAPE, not a single value: a future floor/clamp spike at ANY low
+    # day-value (0, 1, 2, ...) trips the same invariant — closing the bug class,
+    # not one instance. (1) low-end mass capped, (2) no single day-value spike.
+    low_share = (cyc <= 2).mean() if len(cyc) else 0
+    mode_share = cyc.value_counts(normalize=True).max() if len(cyc) else 0
+    check("④ dwell realistic (open<700d, low-end<=2d <15%, no single-day spike <10%)",
+          maxd < 700 and low_share < 0.15 and mode_share < 0.10,
+          f"max_open={maxd}, <=2d={low_share:.1%}, top_day={mode_share:.1%}, median={cyc.median():.0f}d")
 
     # ⑤ activation correlation usage <-> health
     um = usage.groupby("AccountId")["MAURatio"].mean().reset_index()

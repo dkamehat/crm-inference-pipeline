@@ -113,15 +113,24 @@ def test_autoclose_side_effects_consistent(dataset):
         "Closed Won opp carries a LossReason"
 
 
-def test_close_cycle_lower_tail(dataset):
-    """Dwell realism on the LOWER tail: closes must not pile onto a 0-day same-day
-    cycle (the clamp-induced artifact). Guards defect #4 from the fast end."""
-    opp = pd.read_csv(dataset / "opportunities.csv")
+def _cycle_days(out_dir):
+    opp = pd.read_csv(out_dir / "opportunities.csv")
     closed = opp[opp.Stage.isin([WON_STAGE, LOST_STAGE])].copy()
     closed = closed[closed.CloseDate.astype(str).str.len() > 0]
-    cyc = (pd.to_datetime(closed["CloseDate"]) - pd.to_datetime(closed["CreatedDate"])).dt.days
-    zero_ratio = (cyc <= 0).mean()
-    assert zero_ratio < 0.15, f"too many 0-day closes: {zero_ratio:.1%} (cycle median {cyc.median():.0f}d)"
+    return (pd.to_datetime(closed["CloseDate"]) - pd.to_datetime(closed["CreatedDate"])).dt.days
+
+
+def test_close_cycle_low_end_has_no_spike(dataset):
+    """Dwell realism on the LOWER tail, guarded by SHAPE not by a single value:
+    the prior three regressions each piled mass onto one low day-value (0, then 1)
+    and slipped a value-specific guard. Assert the distribution shape instead —
+    (a) low-end mass is bounded and (b) no single day-value is a spike — so a
+    future floor/clamp at ANY low value trips the same invariant (bug class closed)."""
+    cyc = _cycle_days(dataset)
+    low_share = (cyc <= 2).mean()
+    mode_share = cyc.value_counts(normalize=True).max()
+    assert low_share < 0.15, f"low-end (<=2d) mass too high: {low_share:.1%}"
+    assert mode_share < 0.10, f"single day-value spike: {mode_share:.1%} at one cycle length"
 
 
 @pytest.mark.parametrize("seed", [42, 7, 123])
@@ -140,7 +149,8 @@ def test_temporal_invariants_multi_seed(tmp_path, seed):
     assert (acc_c <= opp_c).all(), f"[seed {seed}] account.created > opp.created"
     assert (opp_c <= close_c).all(), f"[seed {seed}] opp.created > close"
     cyc = (close_c - opp_c).dt.days
-    assert (cyc <= 0).mean() < 0.15, f"[seed {seed}] too many 0-day closes"
+    assert (cyc <= 2).mean() < 0.15, f"[seed {seed}] low-end (<=2d) mass too high"
+    assert cyc.value_counts(normalize=True).max() < 0.10, f"[seed {seed}] single day-value spike"
 
 
 def test_days_open_capped(dataset):

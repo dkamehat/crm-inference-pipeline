@@ -44,14 +44,16 @@ def emit(wm, out_dir) -> Path:
         acc = wm.acc_by_id[o["AccountId"]]
         if o["_closed"]:
             rec_stage = STAGES[o["_true_stage_idx"]]                    # terminal stage as recorded
-            # Day-level recorded close: whole-month gap to the recorded close period
-            # plus a positive within-month offset, with close-optimism pulling earlier.
-            # A positive cycle is always preserved (>= 1 day), so same-period closes
-            # spread realistically instead of piling onto the creation date (no 0-day mass).
+            # Day-level recorded close: a whole-month gap to the recorded close period
+            # plus a positive within-month offset = the base cycle. Close-optimism pulls
+            # the record earlier but is BOUNDED by the cycle (you cannot record a deal as
+            # closing earlier than it could physically have progressed), so it never
+            # collapses short same-period cycles onto a floor. cycle >= ceil(base/2) >= 2.
             months_gap = max(0, o["_rec_close_idx"] - o["_created_idx"])
             within = wm.rng.randint(3, 25)                              # within-month day offset
-            optimism = wm.reps.close_optimism_offset(wm.rng)           # recorded close pulled earlier
-            cycle_days = max(1, months_gap * 30 + within - optimism)
+            base_cycle = months_gap * 30 + within
+            optimism = min(wm.reps.close_optimism_offset(wm.rng), base_cycle // 2)
+            cycle_days = base_cycle - optimism
             close_date = add_days(o["CreatedDate"], cycle_days)
         else:
             rec_idx = wm.reps.recorded_open_stage_idx(o["_true_stage_idx"], wm.rng)  # happy-ears
