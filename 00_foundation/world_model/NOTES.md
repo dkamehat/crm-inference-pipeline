@@ -51,6 +51,28 @@ close *month* can drift by about +/-1 from the recorded close *period*.
 - **For L1:** when recovering seasonality, expect a small amount of month
   smearing; aggregate at the quarter level or smooth if a sharper read is needed.
 
+## Known limitation — activities have no temporal spread (Phase-4 hand-off)
+Every activity is dated on its opp's `CreatedDate` (no spread across the deal's
+life). In V1 this is harmless — no planted signal or integrity check reads
+`ActivityDate` — so it is a deliberate thin-slice simplification, NOT a bug.
+
+- **For whoever builds activity-based analysis (Phase 4: lead scoring on
+  Opportunities x Activities):** activities will all cluster at creation. Spread
+  them over the deal's life (created..close) before using activity *timing* as a
+  feature. Logged here so it is not rediscovered as a "bug".
+
+## Known limitation — integrity/dwell guard thresholds are population-size dependent
+The dwell and integrity guards use fixed shares (dwell: <=2d <15% and single
+day-value <10%; integrity: owner <25%, category <20%). These are calibrated for
+the default / CI population (n_accounts=1200, t_periods=18).
+
+- **Impact:** a much smaller run (e.g. `--accounts 50`) produces a sparse
+  distribution where a single value can legitimately exceed a threshold — a false
+  positive, not a real regression. Correct for the default and CI configs.
+- **If small runs become a use case:** scale the thresholds by population size (or
+  switch to a relative "< k x equal-share" form). See the comments at the guard
+  sites in `self_check.run_integrity_checks` and check ④.
+
 ## B — auto-close interaction at long horizons
 The days-open cap (`stage_lag_cap_days`) auto-closes the open tail as lost. In
 the 18-period thin slice this is effectively inert (the window bounds days-open

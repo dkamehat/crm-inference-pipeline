@@ -82,6 +82,8 @@ def run_checks(out_dir: str) -> List[Check]:
     # Guard the SHAPE, not a single value: a future floor/clamp spike at ANY low
     # day-value (0, 1, 2, ...) trips the same invariant — closing the bug class,
     # not one instance. (1) low-end mass capped, (2) no single day-value spike.
+    # Thresholds assume the default population size (see NOTES.md): a very small
+    # run is sparse enough that a single day-value can exceed 10% legitimately.
     low_share = (cyc <= 2).mean() if len(cyc) else 0
     mode_share = cyc.value_counts(normalize=True).max() if len(cyc) else 0
     check("④ dwell realistic (open<700d, low-end<=2d <15%, no single-day spike <10%)",
@@ -171,6 +173,8 @@ def run_integrity_checks(out_dir: str) -> List[Check]:
     opp = pd.read_csv(out / "opportunities.csv")
     o = opp.merge(acc[["AccountId", "Category"]], on="AccountId")
     res: List[Check] = []
+    # NOTE: thresholds are calibrated for the default population (n_accounts=1200).
+    # A much smaller run can be sparse enough to trip these legitimately — see NOTES.md.
 
     def check(name, ok, detail=""):
         res.append(Check(name, bool(ok), detail))
