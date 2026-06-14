@@ -23,7 +23,7 @@ platform archetype, with no real domain, employer, or figures anywhere.
 
 from .config import Config, WorldProfile, PROFILES, V1_PROFILE, STAGES
 from .simulate import WorldModel
-from .self_check import run_checks, self_check
+from .self_check import run_checks, run_integrity_checks, self_check
 
 __all__ = [
     "Config",
@@ -33,5 +33,6 @@ __all__ = [
     "STAGES",
     "WorldModel",
     "run_checks",
+    "run_integrity_checks",
     "self_check",
 ]

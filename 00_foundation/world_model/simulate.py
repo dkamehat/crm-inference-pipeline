@@ -107,12 +107,16 @@ class WorldModel:
                 if created < acc["CreatedDate"]:                 # enforce opp.created >= account.created
                     created = acc["CreatedDate"][:7] + "-01"
                 src_true = self.market.sample_source(self.rng)
+                # owner is assigned at INTAKE (routing on creation), not when worked —
+                # so the un-worked backlog still carries its territory/motion owner
+                # instead of collapsing onto a fallback id.
+                owner = self._assign_owner(acc)
                 opps.append(dict(
                     OppId=f"O{oid:06d}", AccountId=acc["AccountId"],
                     _created_idx=created_idx, CreatedDate=created,
                     _src_true=src_true, _true_stage_idx=0, Stage=STAGES[0],
                     _closed=False, _won=None, _true_close_idx=None, _rec_close_idx=None,
-                    CloseDate="", Amount=0.0, LossReason="", OwnerId="", Source="",
+                    CloseDate="", Amount=0.0, LossReason="", OwnerId=owner, Source="",
                 ))
         self.opps = opps
         self._opps_by_terr_motion = {}
@@ -177,8 +181,6 @@ class WorldModel:
         for o in worked:
             acc = self.acc_by_id[o["AccountId"]]
             p_win = self.true.win_prob(acc, season, o["_src_true"])
-            if not o["OwnerId"]:
-                o["OwnerId"] = self._assign_owner(acc)
             if o["_true_stage_idx"] == 0:
                 o["_true_stage_idx"] = 1                       # moved out of Prospecting
 
@@ -217,7 +219,7 @@ class WorldModel:
                 aid += 1
                 acts.append(dict(ActivityId=f"AC{aid:07d}", OppId=o["OppId"],
                                  ActivityType=self.rng.choice(["Call", "Email", "Meeting", "Demo"]),
-                                 ActivityDate=o["CreatedDate"], OwnerId=o["OwnerId"] or "U001",
+                                 ActivityDate=o["CreatedDate"], OwnerId=o["OwnerId"],
                                  DurationMin=self.rng.choice([15, 30, 45, 60])))
         self.activities = acts
 

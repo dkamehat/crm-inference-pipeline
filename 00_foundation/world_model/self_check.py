@@ -157,6 +157,50 @@ def run_checks(out_dir: str) -> List[Check]:
     return res
 
 
+def run_integrity_checks(out_dir: str) -> List[Check]:
+    """The other half of the thesis: no UNPLANTED structure. Dimensions with NO
+    planted skew must stay ~uniform and not collapse onto a single value (the way
+    the un-worked backlog once dumped 38% of opps onto one rep).
+
+    The planted-skew dimensions are intentionally concentrated and are validated by
+    the planted-signal checks instead — segment by ②, source by ⑧, territory by ⑨;
+    stage concentration is the funnel. So they are audited (printed) but not gated.
+    """
+    out = Path(out_dir)
+    acc = pd.read_csv(out / "accounts.csv")
+    opp = pd.read_csv(out / "opportunities.csv")
+    o = opp.merge(acc[["AccountId", "Category"]], on="AccountId")
+    res: List[Check] = []
+
+    def check(name, ok, detail=""):
+        res.append(Check(name, bool(ok), detail))
+
+    # owner: assigned at intake by territory/motion -> ~uniform within motion
+    owner_share = opp.OwnerId.value_counts(normalize=True).max()
+    check("owner: no single-rep concentration (<25%)", owner_share < 0.25,
+          f"top_owner={owner_share:.1%} of {opp.OwnerId.nunique()} reps")
+    # category: rng.choice -> ~uniform across categories, must not collapse
+    cat_share = o.Category.value_counts(normalize=True).max()
+    check("category: ~uniform, no collapse (<20%)", cat_share < 0.20,
+          f"top_cat={cat_share:.1%} of {o.Category.nunique()}")
+    return res
+
+
+def _dimension_audit(out_dir: str) -> str:
+    """One-line top-value share per dimension (informational eyeball)."""
+    out = Path(out_dir)
+    acc = pd.read_csv(out / "accounts.csv")
+    opp = pd.read_csv(out / "opportunities.csv")
+    o = opp.merge(acc[["AccountId", "Segment", "Category", "Region"]], on="AccountId")
+    dims = {"owner": opp.OwnerId, "source": opp.Source, "territory": o.Region,
+            "segment": o.Segment, "category": o.Category, "stage": opp.Stage}
+    parts = []
+    for name, s in dims.items():
+        vc = s.value_counts(normalize=True)
+        parts.append(f"{name} {vc.iloc[0]*100:.0f}%({vc.index[0]})")
+    return "  ".join(parts)
+
+
 def summary(out_dir: str) -> dict:
     """Headline counts for the report (opps / closed / won / win-rate)."""
     opp = pd.read_csv(Path(out_dir) / "opportunities.csv")
@@ -188,4 +232,11 @@ def self_check(out_dir: str) -> List[Check]:
     for c in res:
         print(f"  [{'PASS' if c.ok else 'FAIL'}] {c.name}  —  {c.detail}")
     print(f"\n  {npass}/{len(res)} signals recoverable")
+
+    integ = run_integrity_checks(out_dir)
+    print("\n=== integrity (no UNPLANTED structure) ===")
+    print(f"  [audit] {_dimension_audit(out_dir)}")
+    for c in integ:
+        print(f"  [{'PASS' if c.ok else 'FAIL'}] {c.name}  —  {c.detail}")
+    print(f"  {sum(1 for c in integ if c.ok)}/{len(integ)} integrity invariants hold")
     return res

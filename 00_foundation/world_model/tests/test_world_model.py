@@ -28,7 +28,7 @@ import random
 from world_model.config import Config, V1_PROFILE, WON_STAGE, LOST_STAGE, MAX_OPEN_STAGE_IDX, STAGES
 from world_model.reps import RepBehaviorModel
 from world_model.simulate import WorldModel
-from world_model.self_check import run_checks
+from world_model.self_check import run_checks, run_integrity_checks
 
 
 def _generate(out_dir: Path, seed: int = 42, periods: int = 18) -> Path:
@@ -56,6 +56,13 @@ def test_each_signal_individually(dataset):
     # surfaces exactly which signal regressed if one breaks
     for c in run_checks(str(dataset)):
         assert c.ok, f"{c.name} failed: {c.detail}"
+
+
+def test_no_unplanted_structure(dataset):
+    """The thesis's other half: dimensions with no planted skew (owner, category)
+    must not collapse onto a single value — only planted signals are recoverable."""
+    fails = [f"{c.name} — {c.detail}" for c in run_integrity_checks(str(dataset)) if not c.ok]
+    assert not fails, "unplanted structure detected:\n  " + "\n  ".join(fails)
 
 
 # --- DoD structural invariants ---------------------------------------------- #
@@ -151,6 +158,8 @@ def test_temporal_invariants_multi_seed(tmp_path, seed):
     cyc = (close_c - opp_c).dt.days
     assert (cyc <= 2).mean() < 0.15, f"[seed {seed}] low-end (<=2d) mass too high"
     assert cyc.value_counts(normalize=True).max() < 0.10, f"[seed {seed}] single day-value spike"
+    owner_share = opp.OwnerId.value_counts(normalize=True).max()
+    assert owner_share < 0.25, f"[seed {seed}] single-rep owner concentration {owner_share:.1%}"
 
 
 def test_days_open_capped(dataset):

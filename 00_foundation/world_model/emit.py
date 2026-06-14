@@ -61,7 +61,7 @@ def emit(wm, out_dir) -> Path:
             close_date = ""
         opp_rows.append(dict(
             OppId=o["OppId"], AccountId=o["AccountId"], Stage=rec_stage,
-            Amount=o["Amount"], Source=o["Source"], OwnerId=o["OwnerId"] or "U001",
+            Amount=o["Amount"], Source=o["Source"], OwnerId=o["OwnerId"],
             CreatedDate=o["CreatedDate"], CloseDate=close_date, LossReason=o["LossReason"],
         ))
         assumed_rows.append(dict(OppId=o["OppId"], AccountId=o["AccountId"],
