@@ -23,7 +23,10 @@ PKG_PARENT = Path(__file__).resolve().parents[2]
 if str(PKG_PARENT) not in sys.path:
     sys.path.insert(0, str(PKG_PARENT))
 
-from world_model.config import Config, V1_PROFILE, WON_STAGE, LOST_STAGE
+import random
+
+from world_model.config import Config, V1_PROFILE, WON_STAGE, LOST_STAGE, MAX_OPEN_STAGE_IDX, STAGES
+from world_model.reps import RepBehaviorModel
 from world_model.simulate import WorldModel
 from world_model.self_check import run_checks
 
@@ -96,6 +99,33 @@ def test_seed_reproducible(tmp_path):
                  "activities.csv", "usage.csv", "health.csv", "assumed_scores.csv"]:
         assert (a / name).read_bytes() == (b / name).read_bytes(), f"{name} not reproducible"
     assert (a / "_ground_truth.json").read_text() == (b / "_ground_truth.json").read_text()
+
+
+def test_stage_lag_never_inflates_recorded_stage():
+    """Stage-lag means 'the rep didn't update it' — the recorded stage must fall
+    BEHIND true progress, never ahead. This guards the direction of the distortion
+    (the bug that slipped through was `max(1, idx-1)` inflating un-worked opps).
+    """
+    # force the stage-lag branch (no happy-ears) and sweep every true stage
+    reps = RepBehaviorModel(Config(stage_lag_p=1.0, happy_p=0.0), V1_PROFILE)
+    rng = random.Random(0)
+    for true_idx in range(len(STAGES)):
+        for _ in range(200):
+            rec = reps.recorded_open_stage_idx(true_idx, rng)
+            assert rec <= true_idx, f"stage-lag inflated: true={true_idx} -> recorded={rec}"
+            assert rec >= 0, f"recorded stage below 0: {rec}"
+
+
+def test_happy_ears_capped_at_open_ceiling():
+    """Happy-ears may record AHEAD, but never past the last open stage (cannot
+    fabricate a closed/won record from an open opp)."""
+    reps = RepBehaviorModel(Config(stage_lag_p=0.0, happy_p=1.0), V1_PROFILE)
+    rng = random.Random(0)
+    for true_idx in range(MAX_OPEN_STAGE_IDX + 1):
+        for _ in range(200):
+            rec = reps.recorded_open_stage_idx(true_idx, rng)
+            assert rec <= MAX_OPEN_STAGE_IDX, f"happy-ears past open ceiling: {rec}"
+            assert rec <= true_idx + 1, f"happy-ears jumped >1 stage: {true_idx}->{rec}"
 
 
 def test_different_seed_differs(tmp_path):

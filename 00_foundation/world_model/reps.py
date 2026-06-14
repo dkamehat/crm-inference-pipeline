@@ -57,7 +57,7 @@ class RepBehaviorModel:
         - happy-ears (happy_p): otherwise, optimistically one stage *ahead* (capped).
         """
         if rng.random() < self.cfg.stage_lag_p:
-            return max(1, true_stage_idx - 1)                  # stale: not updated
+            return max(0, true_stage_idx - 1)                  # stale: held BEHIND true progress
         if rng.random() < self.cfg.happy_p:
             return min(true_stage_idx + 1, MAX_OPEN_STAGE_IDX)  # optimistic
         return true_stage_idx
