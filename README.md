@@ -77,16 +77,16 @@ This phase demonstrates pandas-as-analysis-engine, not just pandas-as-data-shapi
 
 ## Phase 5 — Field Sales Optimization (🚧 Planned)
 
-The challenge: a finite field sales team, tens of thousands of merchants, finite hours per week. How do you decide which reps visit which merchants in what order?
+The challenge: a finite field-heavy GTM team, a high-cardinality account base, finite hours per week. How do you decide which reps cover which accounts in what order?
 
 Planned outputs:
 
-- **Geographic heatmap** of merchant density × GMV potential (Plotly with map tiles)
+- **Geographic heatmap** of account density × value potential (Plotly with map tiles)
 - **Territory boundary visualization** — Voronoi partitioning vs administrative wards
 - **Visit-call hybrid scoring** — when is in-person visit worth the time, when is a phone call enough
-- **Routing efficiency** — given a rep's assigned merchants, what's the optimal day plan
+- **Routing efficiency** — given a rep's assigned accounts, what's the optimal day plan
 
-This is the highest-impact piece for any PM/Ops role in last-mile logistics, on-demand services, or field-heavy B2B sales.
+This is the highest-impact piece for any PM/Ops role in field-heavy, high-frequency B2B operations.
 
 ---
 

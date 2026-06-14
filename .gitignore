@@ -66,6 +66,15 @@ build_notebook.py
 # ------------------------------------------------------------
 *.html.bak
 nbconvert-output/
+
+# ------------------------------------------------------------
+# World-model generated data — PERMANENT RULE: never commit generated CSVs.
+# They are fully reproducible from the seed via `python -m world_model.run`.
+# This guards against accidentally committing future V2/V3 outputs too.
+# ------------------------------------------------------------
+00_foundation/world_model/data/**/*.csv
+00_foundation/world_model/data/**/_ground_truth.json
+!00_foundation/world_model/data/**/.gitkeep
 # Temporary audit/inspection scripts (do not commit)
 audit.py
 inspect.py

@@ -8,7 +8,7 @@ Third application of the framework to a fictional EC marketplace seller-acquisit
 
 - Sales Performance Overview (seller signup → first listing → first sale conversion)
 - Pipeline Health (seller activation funnel)
-- Account Insights (seller cohort GMV trajectory, category × segment ARPA)
+- Account Insights (seller cohort account-value trajectory, category × segment ARPA)
 - Seller Health (Phase 1's CS dashboard, recast as "seller success")
 
 ## What this tests
