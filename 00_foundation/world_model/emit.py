@@ -46,6 +46,9 @@ def emit(wm, out_dir) -> Path:
             rec_stage = STAGES[o["_true_stage_idx"]]                    # terminal stage as recorded
             offset = wm.reps.close_optimism_offset(wm.rng)             # recorded close pulled earlier
             close_date = month_index_minus_days(cfg.start_year, cfg.start_month, o["_rec_close_idx"], offset)
+            # optimism may pull the close earlier WITHIN the deal's life, never before
+            # it began — clamp to the opp's creation (ISO strings compare chronologically).
+            close_date = max(o["CreatedDate"], close_date)
         else:
             rec_idx = wm.reps.recorded_open_stage_idx(o["_true_stage_idx"], wm.rng)  # happy-ears
             rec_stage = STAGES[rec_idx]

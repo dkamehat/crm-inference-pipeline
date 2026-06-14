@@ -69,6 +69,50 @@ def test_opp_created_not_before_account_created(dataset):
     assert (opp_created >= acc_created).all(), "found opp.created < account.created"
 
 
+def test_close_date_not_before_opp_created(dataset):
+    """opp <= close. close-optimism may pull the recorded close earlier within the
+    deal's life, but never before the opp was created (no negative duration / defect #3)."""
+    opp = pd.read_csv(dataset / "opportunities.csv")
+    closed = opp[opp.Stage.isin([WON_STAGE, LOST_STAGE])].copy()
+    closed = closed[closed.CloseDate.astype(str).str.len() > 0]
+    created = pd.to_datetime(closed["CreatedDate"])
+    close = pd.to_datetime(closed["CloseDate"])
+    bad = int((close < created).sum())
+    assert bad == 0, f"{bad} closed opps have CloseDate before CreatedDate"
+
+
+def test_temporal_integrity_triangle(dataset):
+    """The full triangle closes: account.created <= opp.created <= close.
+    This is the invariant whose absence let two distortion-direction bugs through."""
+    acc = pd.read_csv(dataset / "accounts.csv")[["AccountId", "CreatedDate"]]
+    opp = pd.read_csv(dataset / "opportunities.csv")
+    closed = opp[opp.Stage.isin([WON_STAGE, LOST_STAGE])].copy()
+    closed = closed[closed.CloseDate.astype(str).str.len() > 0]
+    m = closed.merge(acc.rename(columns={"CreatedDate": "acc_created"}), on="AccountId")
+    acc_c = pd.to_datetime(m["acc_created"])
+    opp_c = pd.to_datetime(m["CreatedDate"])
+    close_c = pd.to_datetime(m["CloseDate"])
+    assert (acc_c <= opp_c).all(), "account.created > opp.created"
+    assert (opp_c <= close_c).all(), "opp.created > close"
+
+
+def test_autoclose_side_effects_consistent(dataset):
+    """auto-close (and every close) must leave consistent records: a closed opp has
+    a positive Amount; Closed Lost carries a valid LossReason; Closed Won carries none."""
+    opp = pd.read_csv(dataset / "opportunities.csv")
+    won = opp[opp.Stage == WON_STAGE]
+    lost = opp[opp.Stage == LOST_STAGE]
+    valid_reasons = set(V1_PROFILE.loss_reasons)
+    # every closed opp has a real (rounded, positive) amount
+    assert (won["Amount"] > 0).all(), "Closed Won opp with non-positive Amount"
+    assert (lost["Amount"] > 0).all(), "Closed Lost opp with non-positive Amount"
+    # loss reasons: present and valid for lost, absent for won
+    assert lost["LossReason"].notna().all(), "Closed Lost opp missing LossReason"
+    assert set(lost["LossReason"].unique()).issubset(valid_reasons), "unknown LossReason value"
+    assert won["LossReason"].isna().all() or (won["LossReason"].astype(str) == "").all(), \
+        "Closed Won opp carries a LossReason"
+
+
 def test_days_open_capped(dataset):
     opp = pd.read_csv(dataset / "opportunities.csv")
     opp["CreatedDate"] = pd.to_datetime(opp["CreatedDate"])
