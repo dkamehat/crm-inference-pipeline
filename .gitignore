@@ -82,6 +82,12 @@ nbconvert-output/
 00_foundation/recovery/data/**/*.json
 00_foundation/recovery/data/**/*.csv
 !00_foundation/recovery/data/**/.gitkeep
+
+# L3 grading generated reports — PERMANENT RULE: never commit reports/data.
+# Reports are reproducible from the (manifest, card) pairs; only source + tests commit.
+00_foundation/grading/data/**/*.json
+00_foundation/grading/data/**/*.csv
+!00_foundation/grading/data/**/.gitkeep
 # Temporary audit/inspection scripts (do not commit)
 audit.py
 inspect.py
