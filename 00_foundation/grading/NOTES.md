@@ -21,8 +21,18 @@ re-verification (§4.4), aggregated over a set of (manifest, card) pairs.
 - **Magnitude calibration is over TP instances only.** elevation_ratio estimates
   the planted magnitude only when the recovered category equals the planted one;
   on an FP the estimate is for a different category, so comparing it to planted_mag
-  is meaningless. Bias is reported (mean + dispersion), never asserted to be zero —
-  EB shrinkage makes a bounded, on-average non-positive bias the expectation.
+  is meaningless. Bias is reported (mean + dispersion), never asserted to be zero.
+- **Like-for-like reference frame (corrected).** L1's `elevation_ratio` is
+  geomean-relative: `exp(β)` with β sum-to-zero centered in log space, i.e. the
+  wedge category's value relative to the geomean of all category multipliers. The
+  ABSOLUTE multiplier `cat_value_mult[planted_cat]` is unidentifiable under that
+  centering, so the calibration target is
+  `cat_value_mult[planted_cat] / geomean(all cat_value_mult)`. Measured this way the
+  bias is **near zero** (≈unbiased on the 50-seed set); EB attenuation is negligible
+  at this evidence strength. The earlier "downward ~10%" was a **reference-frame
+  artifact** (the wedge's own multiplier pulls the geomean above 1.0) — it is
+  reported separately and explicitly labeled `..._offset_not_a_bias`, never as the
+  bias.
 - **Observation hash is replicated, not imported.** `provenance.observation_hash`
   re-implements the L1 spec's hash (sha256 over the two path-sorted observed CSVs)
   as a pure primitive, so L3 audits the firewall without importing recovery logic.

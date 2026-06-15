@@ -29,7 +29,13 @@ FN = (wedge always planted in V1) and not decision
 The planted wedge is a **category main effect** spanning all segments, so segment
 is **never** a TP gate — `cell_breakdown[].segment_id` is a tolerant cross-check
 only. Magnitude calibration binds to `cat_value_mult` (the value elevation L1
-reports as `elevation_ratio`), never `true_cat_w`.
+reports as `elevation_ratio`), never `true_cat_w`, and in L1's **geomean-relative
+reference frame**: the target is `cat_value_mult[planted_cat] / geomean(all
+cat_value_mult)` (the absolute multiplier is unidentifiable under L1's sum-to-zero
+centering). On the 50-seed set the like-for-like bias is **near zero** (EB
+attenuation negligible at this evidence strength); the absolute-frame difference
+(~−10%) is a **reference-frame artifact**, reported separately and labeled as an
+offset, not a bias.
 
 ## Firewall re-verification (§4.4)
 
