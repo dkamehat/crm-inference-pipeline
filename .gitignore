@@ -75,6 +75,13 @@ nbconvert-output/
 00_foundation/world_model/data/**/*.csv
 00_foundation/world_model/data/**/_ground_truth.json
 !00_foundation/world_model/data/**/.gitkeep
+
+# L1 recovery generated artifacts — PERMANENT RULE: never commit cards or data.
+# Cards/CSVs are reproducible from the (also-ignored) observation. Only synthetic
+# in-code fixtures are committed (spec §11).
+00_foundation/recovery/data/**/*.json
+00_foundation/recovery/data/**/*.csv
+!00_foundation/recovery/data/**/.gitkeep
 # Temporary audit/inspection scripts (do not commit)
 audit.py
 inspect.py
