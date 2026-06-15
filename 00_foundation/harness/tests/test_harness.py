@@ -68,6 +68,21 @@ def test_manifest_seed_matches_schedule(tmp_path):
     assert manifest["seed"] == 1234
 
 
+def test_calibration_power_high_on_planted(tmp_path):
+    """Light power check: the existence gate detects a clearly-planted wedge."""
+    from harness import calibration
+    p = calibration.power(3.2, n_instances=6, n_perm=120, seed_base=1000)
+    assert p["power"] >= 0.8
+
+
+def test_calibration_fpr_near_alpha(tmp_path):
+    """Light FPR check: under the null the gate fires at roughly alpha (generous band
+    for small N — the full-N figure lives in the runnable probe, not the fast suite)."""
+    from harness import calibration
+    r = calibration.false_positive_rate(n_instances=20, n_perm=120, alpha=0.05)
+    assert 0.0 <= r["fpr"] <= 0.20
+
+
 def test_end_to_end_small_set_grades_clean(tmp_path):
     """e2e smoke: a small generated set is gradable, firewall passes, counts reconcile."""
     seeds = generate.default_seeds(2)
