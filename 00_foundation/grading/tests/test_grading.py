@@ -133,16 +133,32 @@ def test_tn_marked_pending_no_wedge_profile(tmp_path):
 # --------------------------------------------------------------------------- #
 # magnitude calibration (§5.1)
 # --------------------------------------------------------------------------- #
-def test_magnitude_bias_reported_not_asserted_zero():
-    """INV: bias is reported (mean + dispersion); attenuated estimate => negative
-    bias — not asserted to be zero."""
+def test_magnitude_target_is_geomean_relative_not_absolute():
+    """INV: the magnitude target is geomean-relative (L1's reference frame), never the
+    absolute multiplier (which is unidentifiable under sum-to-zero centering)."""
+    import math
     m = _make_manifest(planted_cat="C3", mag=3.0)
-    recs = [calibration.magnitude_record(m, _make_card(recovered="C3", elevation=e))
-            for e in (2.4, 2.7, 2.9)]
+    cvm = m["cat_value_mult"]
+    geomean = math.exp(sum(math.log(v) for v in cvm.values()) / len(cvm))
+    assert ground_truth.planted_magnitude(m) == pytest.approx(3.0 / geomean)
+    assert ground_truth.planted_magnitude(m) != pytest.approx(3.0)        # not absolute
+    assert ground_truth.planted_magnitude_absolute(m) == 3.0
+
+
+def test_magnitude_like_for_like_bias_small_offset_labeled():
+    """INV: headline bias is like-for-like and small for near-perfect recovery (asserted
+    by a bound, not a hardcoded value); the absolute-frame difference is reported
+    separately and labeled as an offset, never used as the bias."""
+    m = _make_manifest(planted_cat="C3", mag=3.0)
+    target = ground_truth.planted_magnitude(m)                # geomean-relative
+    recs = [calibration.magnitude_record(m, _make_card(recovered="C3", elevation=target * f))
+            for f in (0.98, 1.0, 1.02)]                       # near-perfect recovery
     agg = calibration.aggregate_bias(recs)
-    assert agg["n"] == 3
-    assert agg["mean_abs_bias"] < 0           # attenuated below planted 3.0
-    assert "stdev_abs_bias" in agg and "mean_rel_bias" in agg
+    assert agg["frame"] == "like-for-like (geomean-relative)"
+    assert abs(agg["mean_rel_bias"]) < 0.05                   # near-unbiased, like-for-like
+    off = agg["absolute_reference_frame_offset_not_a_bias"]
+    assert off["mean_rel_offset"] is not None                 # reported...
+    assert off["mean_rel_offset"] < -0.05                     # ...and distinct from the (small) bias
 
 
 def test_magnitude_only_over_tp(tmp_path):
@@ -157,12 +173,18 @@ def test_magnitude_only_over_tp(tmp_path):
 # accessor + firewall static invariants (§7)
 # --------------------------------------------------------------------------- #
 def test_ground_truth_accessor_loads_and_indexes(tmp_path):
-    """The accessor loads the manifest and field helpers index the wedge."""
+    """The accessor loads the manifest and field helpers index the wedge. The
+    magnitude target is geomean-relative; the absolute multiplier is exposed only
+    as the labeled offset."""
+    import math
     p = tmp_path / ground_truth.MANIFEST_NAME
     p.write_text(json.dumps(_make_manifest(planted_cat="C4", mag=4.2)))
     m = ground_truth.load(p)
     assert ground_truth.planted_category(m) == "C4"
-    assert ground_truth.planted_magnitude(m) == 4.2
+    assert ground_truth.planted_magnitude_absolute(m) == 4.2
+    geomean = math.exp(sum(math.log(v) for v in m["cat_value_mult"].values())
+                       / len(m["cat_value_mult"]))
+    assert ground_truth.planted_magnitude(m) == pytest.approx(4.2 / geomean)
 
 
 def _grading_sources():
