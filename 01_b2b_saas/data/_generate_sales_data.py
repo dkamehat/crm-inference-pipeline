@@ -9,7 +9,7 @@ Schema mirrors Salesforce standard objects:
   - Activities.csv: ActivityId, OppId, ActivityType, ActivityDate, OwnerId, DurationMin
   - Users.csv: OwnerId, OwnerName, Role, Region
 
-Output: /home/claude/tableau-portfolio/data/<domain>/
+Output: ./data/<domain>/
 """
 
 import csv
@@ -20,7 +20,7 @@ from pathlib import Path
 
 random.seed(42)
 
-OUT_ROOT = Path("/home/claude/tableau-portfolio/data")
+OUT_ROOT = Path("./data")
 
 # ----- Common config -----
 STAGES = [

@@ -14,7 +14,7 @@ from pathlib import Path
 
 random.seed(43)  # different seed to avoid correlation with existing files
 
-DATA_DIR = Path("/home/claude/tableau-portfolio/data/01_b2b_saas")
+DATA_DIR = Path("./data/01_b2b_saas")
 
 # Load existing accounts to extend
 with open(DATA_DIR / "Accounts.csv", encoding="utf-8") as f:
