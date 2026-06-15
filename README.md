@@ -80,10 +80,7 @@ the evidence contradicts them. The aim is to be right — and to know it.
 This inference pipeline is the flagship; the repo also holds other BizOps analytics work.
 
 - [`00_foundation/`](00_foundation/) — the inference pipeline above (generator · recovery · grader · harness)
-- [`01_b2b_saas/`](01_b2b_saas/) — B2B SaaS sales & customer-success analytics (SQL + dashboards)
-- [`03_ec_marketplace/`](03_ec_marketplace/) — e-commerce marketplace analytics
-- [`04_advanced_analytics/`](04_advanced_analytics/) — advanced analytics
-- [`05_field_sales_optimization/`](05_field_sales_optimization/) — field-sales optimization
+- [`01_b2b_saas/`](01_b2b_saas/) — B2B SaaS sales & customer-success analytics: 4 SQL query sets + a rendered Plotly notebook on synthetic CRM-shaped data
 
 ---
 
