@@ -40,7 +40,7 @@ tampered result is caught and rejected, not graded.
 ## What's proven
 
 **Detection is calibrated** (recovery step):
-- False-positive rate ≈ the nominal **5%** target — measured, not assumed.
+- False-positive rate **≈ 5%** (measured 5.8% over 120 null trials, within sampling error) — calibrated, not assumed.
 - **Power = 100%**: the planted segment is detected at both strong and moderate effect sizes.
 
 **Recovery is accurate** (grader, over a 50-instance set):
