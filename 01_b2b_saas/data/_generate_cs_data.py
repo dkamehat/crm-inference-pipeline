@@ -4,7 +4,7 @@ Add Customer Health data to B2B SaaS domain:
   - UsageMetrics.csv: monthly active users, feature adoption rate, sessions
   - HealthScores.csv: composite health score, churn risk band, NPS proxy
 
-This supports Dashboard 4: Customer Health (Notion CSM positioning).
+This supports Dashboard 4: Customer Health (CSM / customer-success positioning).
 """
 
 import csv

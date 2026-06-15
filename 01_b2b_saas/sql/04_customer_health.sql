@@ -1,7 +1,7 @@
 -- ============================================================
 -- 04_customer_health.sql
 -- Purpose: CS Manager view — who will churn or expand?
--- Audience: CS Manager / CSM Lead (Notion Manager CS, Enterprise CSM)
+-- Audience: CS Manager / CSM Lead (Customer Success leadership, Enterprise CSM)
 -- ============================================================
 
 -- ----------------------------------------
