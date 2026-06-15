@@ -1,124 +1,92 @@
-# Sales Analytics Portfolio
+# Recovering the revenue you're ignoring — with a measured error rate
 
-> Sales operations and customer success analytics, built on Salesforce-shaped data.
-> Same framework applied across three businesses. SQL, Python (pandas), Plotly.
+**The business problem.** Sales teams leave money in segments that *look* unpromising: an
+account category whose deals convert poorly, so the team deprioritizes it — even though the
+accounts in it are quietly worth ~2.8× a typical one. The value is real but masked by low
+conversion, so it never gets worked.
 
-**Status:** Active — building incrementally
-**Last update:** 2026-05-17
+**What this does.** From standard CRM tables alone (`accounts`, `opportunities`), this pipeline
+surfaces that hidden high-value segment, states **how confident it is** (a measured
+false-positive rate), and — running in a controlled world where the truth is known by
+construction — **proves each find against ground truth**.
 
----
+Not a dashboard. Defensible inference with calibration: the "we found X, and here's why you can
+trust it" you can put in front of a VP.
 
-## What this is
+## Why a synthetic world (and why that's the point)
 
-This repository visualizes the design thinking behind sales operations and customer success programs, rendered as **SQL + Python + interactive charts** on synthetic data. The three business domains share one analytical framework.
+On real CRM data you can never check whether an "insight" was actually right — there is no
+answer key. So I built one: a generator plants a known high-value / low-conversion segment, then
+hides the answer. The recovery step sees only the observable data and must find the planted
+segment on its own; a separate grader — the only component allowed to see the answer — scores it.
 
-The framework in this repository reflects design thinking applied to large-scale sales operations in B2B environments. All data and identifiers in this repository are synthetic.
+That separation is the whole game, and it is what lets every quality number below be *measured*
+rather than asserted. The method transfers to real CRM data; the synthetic world is what makes
+it provable.
 
-The framework, not the domain, is the asset.
-
----
-
-## Repository structure
+## The pipeline
 
 ```
-sales-analytics-portfolio/
-├── 01_b2b_saas/             ✅ Phase 1 — published
-│   ├── data/                Synthetic Salesforce-shaped CSVs (Sales + CS)
-│   ├── sql/                 4 query sets (Performance, Pipeline, Accounts, CS)
-│   ├── notebooks/           Interactive Plotly analysis (Jupyter)
-│   └── images/              Static chart renders for previews
-├── 03_ec_marketplace/       🚧 Phase 3 — planned
-├── 04_advanced_analytics/   🚧 Phase 4 — planned
-│   ├── pandas_deep_dive/    Cohort/retention/LTV with pandas
-│   └── ml_lite/             Lead scoring, churn prediction (sklearn)
-└── 05_field_sales_optimization/   🚧 Phase 5 — planned
-    └── (Real-world feature: visit-routing logic for field sales reps)
+Plant    a generator embeds a known high-value / low-conversion segment in a synthetic B2B world
+Hide     the segment is projected into observable tables; the answer is sealed away
+Recover  a firewalled step finds the segment from observations only, with a calibrated test
+Grade    a separate step (the sole answer-reader) scores the find against the truth
 ```
 
-The phases beyond Phase 1 are scoped and stubbed — each will be added incrementally as time allows.
+**Firewall:** the component that *claims* to find the segment and the component that *knows* the
+answer are strictly separated — recovery never reads the answer key. Verified adversarially: a
+tampered result is caught and rejected, not graded.
+
+## What's proven
+
+**Detection is calibrated** (recovery step):
+- False-positive rate ≈ the nominal **5%** target — measured, not assumed.
+- **Power = 100%**: the planted segment is detected at both strong and moderate effect sizes.
+
+**Recovery is accurate** (grader, over a 50-instance set):
+
+| | Result |
+|---|---|
+| Precision / Recall | **1.0 / 1.0** — found in all 50 noise realizations |
+| Magnitude accuracy | **near-unbiased (+0.7%)** — recovered value-uplift matches the truth |
+| Every result | firewall re-verified (0 rejected) |
+
+(Value-uplift is measured in the method's own reference frame — the segment's value relative to a
+typical category — which is the quantity the method identifies.)
+
+## The decision it informs — and what's next
+
+The recovered segment answers *where to point the next sales motion*: the accounts a
+conversion-weighted view says to skip but a value-weighted view says to pursue. The **decision
+layer** that turns this into a ranked account-prioritization call — and grades that decision
+against ground truth — is the next increment: the "drive the business" half of the story.
+
+## Status
+
+- [x] **Generator** — plants the segment, seals the answer
+- [x] **Recovery** — firewalled, calibrated (FPR ≈ 5%, power 100%)
+- [x] **Grader** — machine-scores recovery vs. truth (precision/recall 1.0, near-unbiased magnitude)
+- [ ] **Decision layer** *(next)* — recovered segment → ranked prioritization, graded against truth
+- [ ] **Specificity check** — verifying the *absence* of a false segment against ground truth (roadmapped)
+
+## On rigor — every number is checked
+
+Quality is measured against a known answer and reported with its uncertainty, never asserted; the
+firewall is verified adversarially (tampered results are rejected); and claims are revised when
+the evidence contradicts them. The aim is to be right — and to know it.
+
+## More in this repo
+
+This inference pipeline is the flagship; the repo also holds other BizOps analytics work.
+
+- [`00_foundation/`](00_foundation/) — the inference pipeline above (generator · recovery · grader · harness)
+- [`01_b2b_saas/`](01_b2b_saas/) — B2B SaaS sales & customer-success analytics (SQL + dashboards)
+- [`03_ec_marketplace/`](03_ec_marketplace/) — e-commerce marketplace analytics
+- [`04_advanced_analytics/`](04_advanced_analytics/) — advanced analytics
+- [`05_field_sales_optimization/`](05_field_sales_optimization/) — field-sales optimization
 
 ---
 
-## Phase 1 — B2B SaaS (✅ Published)
-
-Synthetic B2B SaaS business with 800 accounts, ~1,300 opportunities, 331 active customers. Schema mirrors Salesforce standard objects, extended with CS tables.
-
-**Four analyses:**
-
-| # | Analysis | Audience | Read first |
-|---|---|---|---|
-| 1 | Sales Performance Overview | Exec / CRO | If you care about top-line revenue trajectory |
-| 2 | Pipeline Health | Sales Manager | If you care about where deals get stuck |
-| 3 | Account Insights | PM / GTM Strategy | If you care about which segments compound |
-| 4 | Customer Health | CS Manager | If you care about retention and renewal risk |
-
-**Open the notebook:** [`01_b2b_saas/notebooks/analysis.ipynb`](./01_b2b_saas/notebooks/analysis.ipynb) — GitHub renders the embedded Plotly charts inline.
-
----
-
-## Phase 3 — EC Marketplace (🚧 Planned)
-
-Seller acquisition for a fictional EC marketplace. Tests whether the framework holds for a transactional high-volume business with very different unit economics.
-
----
-
-## Phase 4 — Advanced Analytics with pandas (🚧 Planned)
-
-Where Phase 1–3 establish the framework on synthetic data, Phase 4 goes deeper with the same data:
-
-- **Cohort retention triangles** — pandas-native implementation
-- **Customer lifetime value** — using subscription + churn data from Phase 1
-- **Lead scoring** — logistic regression on Opportunities × Activities to predict win probability
-- **Anomaly detection** — pipeline velocity outliers, week-over-week deal stuckness
-
-This phase demonstrates pandas-as-analysis-engine, not just pandas-as-data-shaping.
-
----
-
-## Phase 5 — Field Sales Optimization (🚧 Planned)
-
-The challenge: a finite field-heavy GTM team, a high-cardinality account base, finite hours per week. How do you decide which reps cover which accounts in what order?
-
-Planned outputs:
-
-- **Geographic heatmap** of account density × value potential (Plotly with map tiles)
-- **Territory boundary visualization** — Voronoi partitioning vs administrative wards
-- **Visit-call hybrid scoring** — when is in-person visit worth the time, when is a phone call enough
-- **Routing efficiency** — given a rep's assigned accounts, what's the optimal day plan
-
-This is the highest-impact piece for any PM/Ops role in field-heavy, high-frequency B2B operations.
-
----
-
-## Technical stack
-
-| Layer | Tool | Why |
-|---|---|---|
-| Data | CSV (synthetic, seeded) | Reproducible without infrastructure |
-| Query | SQL (DuckDB-compatible) | Queries run on flat files, no warehouse needed |
-| Analysis | Python 3.11 + pandas | Industry default |
-| Visualization | Plotly | Interactive, renders inline in Jupyter and GitHub |
-| Notebooks | Jupyter | Standard, GitHub-rendered |
-
-To run notebooks locally:
-
-```bash
-git clone https://github.com/dkamehat/sales-analytics-portfolio.git
-cd sales-analytics-portfolio
-pip install -r requirements.txt
-jupyter lab
-```
-
----
-
-## A note on synthetic data
-
-All CSVs in this repository are **synthetically generated** with seeded random number generators (reproducible). No real customer, account, or transaction data appears anywhere. The seed and generation scripts are included.
-
-The schema mirrors Salesforce standard objects (Accounts, Opportunities, Activities, Users) extended with CS objects (Subscriptions, UsageMetrics, HealthScores) — chosen so that the patterns explored generalize directly to real Salesforce-driven GTM stacks.
-
----
-
-## License
-
-MIT for code. The synthetic data is offered as-is for portfolio review purposes.
+*All data here is synthetic and generated by the model, following the standard CRM object model
+(accounts, opportunities). The domain is an abstract B2B archetype; nothing is drawn from any real
+organization.*
