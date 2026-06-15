@@ -20,6 +20,32 @@ The V1 observation has **N=8 categories ≥ S_min=6**, so the defaults were kept
 - **Bootstrap stability** holds the null-calibrated threshold fixed and resamples
   rows — it measures sampling variability of the estimate, not of the calibration.
 
+## Fix log — bootstrap absent-category exclusion (INV-STB hardening)
+`_category_effects` previously assigned a category absent from a sample
+(count==0) a spurious `raw = −μ` effect. Now absent categories are excluded from
+centering, τ²/σ² estimation, and membership (effect → NaN, post_prob → 0), and
+bootstrap Jaccard is evaluated over the categories present in each resample.
+- **No effect at current N**: with N=8 / won=455 a category is dropped from a
+  bootstrap resample with probability ≈ e⁻¹¹, so Jaccard stays ≈1.00 (verified).
+- **Why fixed anyway**: required for a future profile with near-singleton
+  categories (B-L1-2 multi-wedge / small N), where the −μ artifact could fabricate
+  or distort membership. Permanent correctness fix, not a current-data patch.
+
+## Hand-off to L3 — score MUST gate on `wedge_exists.decision`
+`recovered_wedge_category` is always populated (the strongest low-count elevated
+candidate) even when `wedge_exists.decision == False` — it is a falsifiable claim,
+not an assertion that a wedge exists. **L3 must gate scoring on `decision`:**
+
+| `decision` | matches planted? | outcome |
+|---|---|---|
+| True  | yes | TP |
+| True  | no  | FP |
+| False | a wedge was planted | FN |
+| False | no wedge planted    | TN |
+
+A `decision == False` card must NOT be scored as a positive claim regardless of
+what `recovered_wedge_category` contains. (Sent to the L3 spec.)
+
 ## Deferred B items (spec §13.3)
 - **B-L1-1**: price estimator sensitivity (mean / trimmed / log-posterior).
 - **B-L1-2**: generalize to multiple wedges (current method assumes a single
@@ -30,6 +56,10 @@ The V1 observation has **N=8 categories ≥ S_min=6**, so the defaults were kept
 - **B-L1-4**: post_prob calibration measurement is L3's to define (sent to L3).
 - **B-L1-5**: transaction vs account dedup — first-class definition is currently
   transaction-grain (L0 parity, R3); dedup runs only as a robustness check.
+- **B-L1-6**: if segment×category imbalance grows, the additive ANOVA-style
+  decomposition (sequential adjustment) is principally inferior to a joint fit
+  (OLS / mixed model) that estimates α and β simultaneously — revisit the estimator
+  when cells become strongly unbalanced (relates to B-L1-1).
 
 ## Temperature notes (from L0 recon)
 - **Season smear is irrelevant to the wedge**: the wedge is recovered over the
