@@ -163,6 +163,34 @@ def test_attestation_hash_matches_and_flag_false(real_obs, real_result):
     assert io.observation_hash(tampered, real_obs["opp"]) != card["provenance"]["observation_hash"]
 
 
+def test_firewall_runtime_card_identical_without_manifest(tmp_path, real_obs, monkeypatch):
+    """INV-FW (runtime, spec §2/§6): recovery.run completes and produces an IDENTICAL
+    card whether or not a ground-truth manifest sits beside the observation — proving
+    L1 never reads it. Uses file presence only (no open() monkeypatch)."""
+    import os
+    import shutil
+    from recovery import run as runmod
+    monkeypatch.setitem(runmod.DEFAULTS, "n_perm", 200)
+    monkeypatch.setitem(runmod.DEFAULTS, "n_bootstrap", 0)
+    d = tmp_path / "obs"
+    d.mkdir()
+    shutil.copy(real_obs["acc"], d / "accounts.csv")
+    shutil.copy(real_obs["opp"], d / "opportunities.csv")
+    (d / "_ground_truth.json").write_text('{"decoy": "L1 must not read this"}')
+
+    out1 = tmp_path / "c1.json"
+    assert runmod.main(["--data-dir", str(d), "--out", str(out1), "--seed", "9"]) == 0
+    card_with = json.loads(out1.read_text())
+
+    os.remove(d / "_ground_truth.json")                      # remove the manifest entirely
+    out2 = tmp_path / "c2.json"
+    assert runmod.main(["--data-dir", str(d), "--out", str(out2), "--seed", "9"]) == 0  # (a) completes
+    card_without = json.loads(out2.read_text())
+
+    assert card_with == card_without                          # (b) manifest presence is irrelevant
+    assert card_with["provenance"]["manifest_read"] is False
+
+
 # --------------------------------------------------------------------------- #
 # invariant
 # --------------------------------------------------------------------------- #
@@ -333,6 +361,39 @@ def test_quirk_singleton_category_strongly_shrunk():
     i = list(cat.categories).index("C_single")
     assert eff["counts"][i] == 1
     assert abs(eff["beta"][i]) <= abs(eff["raw"][i]) + 1e-9   # shrunk toward 0
+
+
+def test_bootstrap_absent_category_not_fabricated():
+    """A category absent from a sample (count=0, e.g. dropped by a bootstrap resample)
+    gets NO spurious effect (was raw=−μ), is never elevated, and raises nothing —
+    present categories stay finite (spec §6 INV-STB / §9)."""
+    w = synth_won(42)
+    seg = pd.Categorical(w["Segment"]); cat = pd.Categorical(w["Category"])
+    codes = cat.codes.astype(np.int64)
+    adj = _segment_adjusted(np.log(w["Amount"].to_numpy(float)),
+                            seg.codes.astype(np.int64), len(seg.categories))
+    drop = 2
+    keep = codes != drop                               # remove every row of one category
+    eff = _category_effects(adj[keep], codes[keep], len(cat.categories),
+                            len(seg.categories), 1.0)
+    assert eff["counts"][drop] == 0
+    assert np.isnan(eff["beta"][drop]) and np.isnan(eff["raw"][drop])   # no −μ fabrication
+    assert eff["post_prob"][drop] == 0.0                                # never elevated
+    assert np.all(np.isfinite(eff["beta"][eff["present"]]))             # present effects finite
+
+
+@pytest.mark.parametrize("seed", SEEDS)
+def test_bootstrap_singleton_category_is_robust(seed):
+    """recover's bootstrap stability runs cleanly when a near-singleton category is
+    frequently dropped by resamples — no crash, finite Jaccard, no fabricated member."""
+    w = synth_won(seed).copy()
+    is7 = w["Category"] == "C7"
+    idx7 = list(w.index[is7])
+    w.loc[idx7[1:], "Category"] = "C0"                 # leave C7 with exactly one row
+    assert (w["Category"] == "C7").sum() == 1
+    r = recover(w, n_perm=200, n_bootstrap=120, seed=seed)
+    assert np.isfinite(r.jaccard_stability) and 0.0 <= r.jaccard_stability <= 1.0
+    assert isinstance(r.decision, bool)
 
 
 def test_quirk_transaction_vs_account_dedup_robustness(real_obs):
