@@ -72,30 +72,36 @@ def _segment_adjusted(y: np.ndarray, seg_codes: np.ndarray, n_seg: int) -> np.nd
 
 def _category_effects(adjusted: np.ndarray, cat_codes: np.ndarray,
                       n_cat: int, n_seg: int, k_kappa: float) -> dict:
-    """Empirical-Bayes category effects on segment-adjusted log-value (spec §5.2)."""
+    """Empirical-Bayes category effects on segment-adjusted log-value (spec §5.2).
+
+    Categories ABSENT from the data (count==0, e.g. dropped by a bootstrap resample)
+    are excluded — they get no effect (NaN), are not centered into the population,
+    and never become members. When all categories are present (the main path) this is
+    bit-identical to the unmasked computation (no regression)."""
     n = len(adjusted)
     counts = np.bincount(cat_codes, minlength=n_cat).astype(float)
-    safe = np.maximum(counts, 1.0)
+    present = counts > 0
+    safe = np.where(present, counts, 1.0)
     sums = np.bincount(cat_codes, weights=adjusted, minlength=n_cat)
     mu = float(adjusted.mean())
-    cat_mean = sums / safe
-    raw = cat_mean - mu
-    raw = raw - raw.mean()                       # sum-to-zero: 0 = average category
-    resid = adjusted - mu - raw[cat_codes]
+    raw = np.where(present, sums / safe - mu, np.nan)
+    raw = raw - np.nanmean(raw)                  # sum-to-zero over PRESENT categories
+    resid = adjusted - mu - np.nan_to_num(raw)[cat_codes]   # cat_codes only index present
     p = (n_seg - 1) + (n_cat - 1) + 1
     sigma2 = float((resid ** 2).sum()) / max(1, n - p)
-    var_raw = float(np.var(raw, ddof=1)) if n_cat > 1 else 0.0
-    tau2 = max(0.0, var_raw - float(np.mean(sigma2 / safe)))      # method-of-moments
-    w = tau2 / (tau2 + sigma2 / safe)            # shrink weight in [0, 1]
+    n_present = int(present.sum())
+    var_raw = float(np.nanvar(raw, ddof=1)) if n_present > 1 else 0.0
+    tau2 = max(0.0, var_raw - float(np.mean((sigma2 / safe)[present])))   # method-of-moments
+    w = np.where(present, tau2 / (tau2 + sigma2 / safe), np.nan)  # shrink weight in [0, 1]
     beta = w * raw                               # INV-CVX: between 0 and raw
-    post_var = w * sigma2 / safe                 # EB posterior variance of β_c
+    post_var = np.where(present, w * sigma2 / safe, np.nan)       # EB posterior variance
     kappa = guards.kappa_from_tau(tau2, k_kappa)
-    post_prob = np.zeros(n_cat)
-    pos = post_var > 0
+    post_prob = np.zeros(n_cat)                  # absent -> 0 (never elevated)
+    pos = present & (post_var > 0)
     if pos.any():
         z = (kappa - beta[pos]) / np.sqrt(post_var[pos])
         post_prob[pos] = guards.norm_sf(z)
-    return dict(counts=counts, raw=raw, beta=beta, post_var=post_var,
+    return dict(counts=counts, raw=raw, beta=beta, post_var=post_var, present=present,
                 sigma2=sigma2, tau2=tau2, w=w, post_prob=post_prob, kappa=kappa)
 
 
@@ -112,6 +118,20 @@ def _count_percentile(counts: np.ndarray) -> np.ndarray:
     less = (counts[None, :] < counts[:, None]).sum(1)
     equal = (counts[None, :] == counts[:, None]).sum(1)
     return (less + 0.5 * equal) / n
+
+
+def _count_percentile_present(counts: np.ndarray) -> np.ndarray:
+    """Count percentile computed over PRESENT categories only (absent -> +inf, so
+    they are never rare-enough to be members). Identical to _count_percentile when
+    all categories are present."""
+    present = counts > 0
+    out = np.full(len(counts), np.inf)
+    c = counts[present]
+    if len(c):
+        less = (c[None, :] < c[:, None]).sum(1)
+        equal = (c[None, :] == c[:, None]).sum(1)
+        out[present] = (less + 0.5 * equal) / len(c)
+    return out
 
 
 def recover(df: pd.DataFrame, *, category_col: str = "Category",
@@ -230,8 +250,12 @@ def _bootstrap_jaccard(y, seg_codes, cat_codes, n_seg, n_cat, k_kappa,
         idx = rng.integers(0, n, n)
         adj_b = _segment_adjusted(y[idx], seg_codes[idx], n_seg)
         eff_b = _category_effects(adj_b, cat_codes[idx], n_cat, n_seg, k_kappa)
-        cpct_b = _count_percentile(eff_b["counts"])
+        present = eff_b["counts"] > 0
+        cpct_b = _count_percentile_present(eff_b["counts"])
         mem_b = {cat_labels[i] for i in np.where(
-            (cpct_b <= p_low) & (eff_b["post_prob"] >= thr_elev))[0]}
-        jacs.append(guards.jaccard(members, mem_b))
+            present & (cpct_b <= p_low) & (eff_b["post_prob"] >= thr_elev))[0]}
+        # evaluate stability over categories present in this resample (spec §6 INV-STB):
+        # a category absent from the resample is "no data here", not evidence either way.
+        present_labels = {cat_labels[i] for i in np.where(present)[0]}
+        jacs.append(guards.jaccard(members & present_labels, mem_b))
     return float(np.mean(jacs))
