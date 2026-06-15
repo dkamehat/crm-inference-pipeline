@@ -88,6 +88,12 @@ nbconvert-output/
 00_foundation/grading/data/**/*.json
 00_foundation/grading/data/**/*.csv
 !00_foundation/grading/data/**/.gitkeep
+
+# Orchestration harness generated quads (manifest/card/CSVs) — PERMANENT RULE:
+# never commit generated quads; reproducible from the fixed seed schedule.
+00_foundation/harness/data/**/*.json
+00_foundation/harness/data/**/*.csv
+!00_foundation/harness/data/**/.gitkeep
 # Temporary audit/inspection scripts (do not commit)
 audit.py
 inspect.py
