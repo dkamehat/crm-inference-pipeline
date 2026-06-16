@@ -12,6 +12,9 @@ Schema mirrors Salesforce standard objects:
 Output: ./data/<domain>/
 """
 
+# NOTE: legacy multi-domain generator; only the B2B SaaS path (generate_saas) is
+# used in this repo. The B2B SaaS output is the data shipped under ./data/.
+
 import csv
 import os
 import random
