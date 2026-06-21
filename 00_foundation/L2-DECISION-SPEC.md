@@ -13,9 +13,9 @@ graded against ground truth.
 
 The decision target is the population a conversion-weighted view deprioritizes
 but a value-weighted view should pursue: accounts in the recovered category
-(high value `cat_value_mult`≈3.2 — the raw absolute multiplier; the repo README
-reports the same wedge as ~2.8× on a geomean-relative, like-for-like basis), low
-conversion `true_cat_w`≈−0.55) that are still under-penetrated.
+(high value `cat_value_mult`≈3.2 — raw absolute multiplier, reported as ~2.8×
+geomean-relative in the README — low conversion `true_cat_w`≈−0.55) that are
+still under-penetrated.
 
 ## 1. Scope (v1) and non-scope
 
