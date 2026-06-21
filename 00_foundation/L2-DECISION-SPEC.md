@@ -13,8 +13,9 @@ graded against ground truth.
 
 The decision target is the population a conversion-weighted view deprioritizes
 but a value-weighted view should pursue: accounts in the recovered category
-(high value `cat_value_mult`≈3.2, low conversion `true_cat_w`≈−0.55) that are
-still under-penetrated.
+(high value `cat_value_mult`≈3.2 — the raw absolute multiplier; the repo README
+reports the same wedge as ~2.8× on a geomean-relative, like-for-like basis), low
+conversion `true_cat_w`≈−0.55) that are still under-penetrated.
 
 ## 1. Scope (v1) and non-scope
 
@@ -136,6 +137,11 @@ MidMarket 47, plus SMB 101, Enterprise 9).
 full-universe ranking and averaged across a multi-seed set (same harness pattern
 as recovery grading) → mean precision@K.
 
+*Implementation dependency:* the current harness emits only the quad
+(manifest / card / accounts / opps); Option-A grading additionally requires a
+per-seed L2 ranking. The harness must therefore be extended to run L2 on each
+seed and emit its ranking alongside the quad. (Tracked in §7.)
+
 ### 5.3 What K is, and how to read it
 **K is the size of the action shortlist** — "if the sales team can only work the
 top K accounts this cycle, how many of those K are genuinely in the
@@ -183,6 +189,15 @@ metric itself).
   per-account value (Option B, §7). v1 states this limitation rather than
   implying the score's internal ordering is validated.
 
+**Attribution note.** Strictly, precision@K grades the *composed* L1→L2 decision
+against truth: L2 ranks by the card's *recovered* category, while L3 scores
+against the manifest's *true planted* category, so a seed where L1 mis-recovers
+would lower precision@K even with a perfect L2. On the reference world this
+isolates L2 in practice because L1 recovery runs at precision/recall 1.0 — but
+the metric's honest scope is the composed decision, not L2 in a vacuum. This is
+appropriate for a decision layer measured by business outcome, stated here so the
+attribution is not overclaimed.
+
 ## 6. Firewall re-verification (L3)
 As with recovery grading, L3 re-verifies — it does not trust — that L2 produced
 its ranking without reading the answer:
@@ -202,6 +217,11 @@ A ranking that fails firewall re-verification is rejected, not graded.
 - **L1 (card schema) — optional.** If future L2 versions weight by the card's
   per-segment cell_breakdown strength, no schema change is needed (already
   present); noted for completeness.
+
+- **Harness (this lane) — per-seed L2 ranking.** Extend the harness to run L2 on
+  each generated seed and emit its ranking with the quad, so L3 can compute
+  precision@K across the multi-seed set (see §5.2). Required for Option-A
+  multi-seed grading.
 
 ## 8. Status of this spec
 v0.1 — design complete, gradable on Option A with the current manifest. Two
