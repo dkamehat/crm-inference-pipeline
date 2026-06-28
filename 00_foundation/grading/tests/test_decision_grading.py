@@ -116,6 +116,31 @@ def test_aggregate_means_across_seeds(tmp_path):
     assert agg["mean_precision_at_k"]["10"] == pytest.approx(0.75)   # (1.0 + 0.5)/2
 
 
+def test_aggregate_handles_all_none_base_rate():
+    """aggregate() degrades gracefully (mean_base_rate=None) instead of raising when
+    every record has an empty universe — symmetric with the empty-records guard."""
+    records = [{"base_rate": None, "n_positives": 0, "precision_at_k": {}}]
+    agg = decision.aggregate(records)
+    assert agg["mean_base_rate"] is None
+    assert agg["mean_precision_at_k"] == {}
+
+
+def test_aggregate_flags_varying_k_ceiling(tmp_path):
+    """precision_at_n_positives is measured at K=|positives|, which varies by seed —
+    aggregate must flag k_varies_by_seed and report the K range, not a bare mean that
+    silently mixes different shortlist sizes."""
+    a1, a2 = tmp_path / "a1.csv", tmp_path / "a2.csv"
+    a1.write_text(_accounts_csv(10, 90))     # 10 positives -> K=10
+    a2.write_text(_accounts_csv(20, 80))     # 20 positives -> K=20
+    r1 = decision.grade_ranking(_manifest(), _ranking(
+        [f"p{i}" for i in range(10)] + [f"n{i}" for i in range(90)]), a1, ks=(10,))
+    r2 = decision.grade_ranking(_manifest(), _ranking(
+        [f"p{i}" for i in range(20)] + [f"n{i}" for i in range(80)]), a2, ks=(10,))
+    ceiling = decision.aggregate([r1, r2])["precision_at_own_positive_ceiling"]
+    assert ceiling["k_varies_by_seed"] is True
+    assert ceiling["k_range"] == [10, 20]
+
+
 def _write_instance(tmp: Path, name: str, *, hash_ok=True, manifest_read=False) -> Path:
     d = tmp / name
     d.mkdir(parents=True)

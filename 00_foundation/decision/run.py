@@ -48,6 +48,7 @@ def main(argv=None) -> int:
                 Path(__file__).resolve().parent / "data" / "decision_ranking.json")
 
     obs_hash = io.observation_hash(acc_path, opp_path)
+    no_truth_leak, _ = io.audit_columns(acc_path, opp_path)
     accounts = io.load_accounts(acc_path)
     won_by_account = io.won_counts(opp_path)
     rec_cat = io.recovered_category(card_path)
@@ -55,7 +56,8 @@ def main(argv=None) -> int:
     ranked = rank_accounts(accounts, won_by_account, rec_cat)
     weights = (W1, W2, W3)
     ranking = _card.build_ranking(ranked, observation_hash=obs_hash,
-                                  recovered_category=rec_cat, weights=weights)
+                                  recovered_category=rec_cat, weights=weights,
+                                  no_truth_leak=no_truth_leak)
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(json.dumps(ranking, indent=2))
@@ -63,7 +65,8 @@ def main(argv=None) -> int:
     n_cat = sum(1 for r in ranked if r.in_recovered_category)
     top = ranked[0]
     print(f"decision ranking -> {out_path}")
-    print(f"  observation_hash={obs_hash[:12]}...  manifest_read={ranking['provenance']['manifest_read']}")
+    print(f"  observation_hash={obs_hash[:12]}...  manifest_read={ranking['provenance']['manifest_read']}"
+          f"  no_truth_leak={no_truth_leak}")
     print(f"  recovered_category={rec_cat}  accounts={len(ranked)}  in_category={n_cat}")
     print(f"  rank#1: {top.account_id} (tier={top.segment_tier}, n_won={top.n_won})")
     print(f"  precision@K vs ground truth is L3's job, not L2's")

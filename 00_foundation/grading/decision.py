@@ -73,7 +73,8 @@ def grade_ranking(manifest: dict, ranking: dict, accounts_path, ks=DEFAULT_KS) -
 
 def aggregate(records: list) -> dict:
     """Mean precision@K across a multi-seed set (spec §5.2). Each record is a
-    grade_ranking() dict; Ks present in every record are averaged."""
+    grade_ranking() dict; only the FIXED Ks present in every record are averaged —
+    those share one shortlist size across seeds, so the mean is well-defined."""
     if not records:
         return {"n": 0}
     ks = set(records[0]["precision_at_k"].keys())
@@ -81,12 +82,24 @@ def aggregate(records: list) -> dict:
         ks &= set(r["precision_at_k"].keys())
     mean_pk = {k: round(statistics.fmean(r["precision_at_k"][k] for r in records), 6)
                for k in sorted(ks, key=int)}
-    base = statistics.fmean(r["base_rate"] for r in records if r["base_rate"] is not None)
+    base_rates = [r["base_rate"] for r in records if r["base_rate"] is not None]
+    base = round(statistics.fmean(base_rates), 6) if base_rates else None
     agg = {"n": len(records), "frame": "Option A (category membership)",
-           "mean_base_rate": round(base, 6), "mean_precision_at_k": mean_pk}
-    eqp = [r["precision_at_n_positives"] for r in records if "precision_at_n_positives" in r]
+           "mean_base_rate": base, "mean_precision_at_k": mean_pk}
+    # precision at K = |positives| is each seed's natural ceiling, but |positives|
+    # varies by seed, so this mean mixes different K — report it transparently with
+    # the K spread, never as a single-shortlist number (it would be misread otherwise).
+    eqp = [(r["n_positives"], r["precision_at_n_positives"]) for r in records
+           if "precision_at_n_positives" in r]
     if eqp:
-        agg["mean_precision_at_n_positives"] = round(statistics.fmean(eqp), 6)
+        ks_used = sorted({k for k, _ in eqp})
+        agg["precision_at_own_positive_ceiling"] = {
+            "mean": round(statistics.fmean(p for _, p in eqp), 6),
+            "k_varies_by_seed": len(ks_used) > 1,
+            "k_range": [ks_used[0], ks_used[-1]],
+            "note": "each seed measured at K = its own |positives| (precision=recall there); "
+                    "the mean mixes K when k_varies_by_seed is true",
+        }
     return agg
 
 

@@ -5,6 +5,8 @@ The ranking is the falsifiable artifact L3 decision-grading scores against the
 manifest's planted population (precision@K). `provenance.manifest_read=false` +
 `observation_hash` is the firewall attestation L3 re-verifies (spec §6); the
 attestation is byte-identical in form to L1's so one verifier audits both layers.
+`no_truth_leak_in_observation` mirrors L1's self-attestation (a truth-like column
+in the observation would void the firewall) — recorded here, not only in L1.
 """
 
 from __future__ import annotations
@@ -15,12 +17,14 @@ SPEC = "L2-DECISION-SPEC"
 
 
 def build_ranking(ranked: list[RankedAccount], *, observation_hash: str,
-                  recovered_category: str, weights: tuple[float, float, float]) -> dict:
+                  recovered_category: str, weights: tuple[float, float, float],
+                  no_truth_leak: bool) -> dict:
     return {
         "spec": SPEC,
         "provenance": {
             "observation_hash": observation_hash,
             "manifest_read": False,
+            "no_truth_leak_in_observation": bool(no_truth_leak),
             "recovered_category": recovered_category,
             "weights": {"W1": weights[0], "W2": weights[1], "W3": weights[2]},
             "n_accounts": len(ranked),
@@ -42,7 +46,8 @@ def build_ranking(ranked: list[RankedAccount], *, observation_hash: str,
 # Exact key structure for schema-completeness tests (spec §3 output contract).
 RANKING_SCHEMA = {
     "spec": str,
-    "provenance": {"observation_hash": str, "manifest_read": bool, "recovered_category": str,
+    "provenance": {"observation_hash": str, "manifest_read": bool,
+                   "no_truth_leak_in_observation": bool, "recovered_category": str,
                    "weights": dict, "n_accounts": int},
     "ranking": list,
 }

@@ -75,10 +75,12 @@ def test_seed_dir_has_exactly_the_grader_files(tmp_path):
 
 
 def test_generated_ranking_is_manifest_read_false(tmp_path):
-    """INV (firewall): the produced L2 ranking keeps manifest_read == false."""
+    """INV (firewall): the produced L2 ranking keeps manifest_read == false and
+    self-attests no truth-like column leaked into the observation (symmetric with L1)."""
     d = generate.generate_quad(1000, tmp_path / "seed_1000")
     ranking = json.loads((d / generate.RANKING).read_text())
     assert ranking["provenance"]["manifest_read"] is False
+    assert ranking["provenance"]["no_truth_leak_in_observation"] is True
 
 
 def test_generated_card_is_manifest_read_false(tmp_path):

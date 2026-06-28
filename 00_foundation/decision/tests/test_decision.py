@@ -110,13 +110,15 @@ def test_rank_unknown_segment_tier_zero():
 # --------------------------------------------------------------------------- #
 def test_ranking_artifact_schema_and_attestation():
     """The emitted ranking carries the firewall attestation (manifest_read=false +
-    observation_hash) and a complete row schema (spec §3 output contract)."""
+    observation_hash + no_truth_leak) and a complete row schema (spec §3 output contract)."""
     acc = _accounts([("a", "MidMarket", "Cat-D"), ("b", "SMB", "Cat-A")])
     ranked = rank_accounts(acc, {"a": 1}, "Cat-D")
     art = _card.build_ranking(ranked, observation_hash="abc123",
-                              recovered_category="Cat-D", weights=(W1, W2, W3))
+                              recovered_category="Cat-D", weights=(W1, W2, W3),
+                              no_truth_leak=True)
     assert art["provenance"]["manifest_read"] is False
     assert art["provenance"]["observation_hash"] == "abc123"
+    assert art["provenance"]["no_truth_leak_in_observation"] is True
     assert art["provenance"]["n_accounts"] == 2
     for key, typ in _card.RANKING_SCHEMA.items():
         assert isinstance(art[key], dict if isinstance(typ, dict) else typ)
