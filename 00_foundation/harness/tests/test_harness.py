@@ -47,11 +47,38 @@ def test_l1_input_never_contains_the_manifest(tmp_path, monkeypatch):
     assert all(not f.endswith(".json") for f in seen["files"])    # no manifest/card json reachable
 
 
-def test_seed_dir_has_exactly_the_four_grader_files(tmp_path):
-    """INV: seed_<n>/ contains exactly the four files the grader expects."""
+def test_l2_input_never_contains_the_manifest(tmp_path, monkeypatch):
+    """INV (firewall): the harness passes L2 only the observation CSVs + the L1 card —
+    the manifest is never in L2's data-dir. Spy on the data-dir handed to L2."""
+    seen = {}
+    real_main = generate.decision_run.main
+
+    def spy(argv):
+        data_dir = argv[argv.index("--data-dir") + 1]
+        seen["files"] = sorted(os.listdir(data_dir))
+        return real_main(argv)
+
+    monkeypatch.setattr(generate.decision_run, "main", spy)
+    generate.generate_quad(1000, tmp_path / "seed_1000")
+
+    assert set(generate.OBS_FILES).issubset(seen["files"])
+    assert generate.MANIFEST not in seen["files"]                 # manifest absent from L2 input
+    assert all(not f.endswith(".json") for f in seen["files"])    # no manifest/card json in data-dir
+
+
+def test_seed_dir_has_exactly_the_grader_files(tmp_path):
+    """INV: seed_<n>/ contains exactly the files the graders expect — the quad plus
+    the L2 ranking (recovery grading reads the quad; decision grading adds the ranking)."""
     d = generate.generate_quad(1000, tmp_path / "seed_1000")
     assert sorted(os.listdir(d)) == sorted(
-        [generate.MANIFEST, generate.CARD, *generate.OBS_FILES])
+        [generate.MANIFEST, generate.CARD, generate.RANKING, *generate.OBS_FILES])
+
+
+def test_generated_ranking_is_manifest_read_false(tmp_path):
+    """INV (firewall): the produced L2 ranking keeps manifest_read == false."""
+    d = generate.generate_quad(1000, tmp_path / "seed_1000")
+    ranking = json.loads((d / generate.RANKING).read_text())
+    assert ranking["provenance"]["manifest_read"] is False
 
 
 def test_generated_card_is_manifest_read_false(tmp_path):

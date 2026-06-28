@@ -3,12 +3,13 @@ Multi-seed quad generation (L1 / orchestration lane).
 
 Per seed: run L0 emit into a private staging dir (full output incl. the manifest),
 copy ONLY the two observation CSVs into a separate manifest-free input dir, run L1
-recovery against that input dir, then assemble exactly the four grader files into
-run_dir/seed_<n>/.
+recovery and then L2 decision against that input dir, then assemble the grader files
+into run_dir/seed_<n>/.
 
-The manifest never enters L1's input dir, so the card stays manifest_read == false
-and the grader's firewall re-verification passes. L0/L1 are imported and called,
-never modified.
+The manifest never enters the L1/L2 input dir, so both the card and the ranking stay
+manifest_read == false and the grader's firewall re-verification passes. L0/L1/L2 are
+imported and called, never modified. The L2 ranking (decision_ranking.json) is emitted
+alongside the quad so L3 can compute precision@K across the set (L2-DECISION-SPEC §5.2).
 """
 
 from __future__ import annotations
@@ -26,9 +27,11 @@ if str(_FOUNDATION) not in sys.path:
 import world_model.config as wmc
 from world_model.simulate import WorldModel
 from recovery import run as recovery_run
+from decision import run as decision_run
 
 MANIFEST = "_ground_truth.json"          # L0 emit artifact name (grader: ground_truth.MANIFEST_NAME)
 CARD = "recovery_card.json"
+RANKING = "decision_ranking.json"        # L2 artifact name (grader: decision_run.RANKING_NAME)
 OBS_FILES = ("accounts.csv", "opportunities.csv")
 _SEED_BASE = 1000
 
@@ -39,9 +42,9 @@ def default_seeds(n: int, base: int = _SEED_BASE) -> list[int]:
 
 
 def generate_quad(seed: int, seed_dir, l1_seed: int | None = None) -> Path:
-    """Generate one (manifest, card, accounts, opportunities) quad for `seed`.
+    """Generate one (manifest, card, ranking, accounts, opportunities) instance for `seed`.
 
-    L1 sees only the observation CSVs (manifest excluded from its input)."""
+    L1 and L2 see only the observation CSVs (manifest excluded from their input)."""
     seed_dir = Path(seed_dir)
     seed_dir.mkdir(parents=True, exist_ok=True)
 
@@ -51,7 +54,7 @@ def generate_quad(seed: int, seed_dir, l1_seed: int | None = None) -> Path:
         # 1. L0 emit (manifest + observations) into private staging
         WorldModel(wmc.Config(seed=seed), wmc.V1_PROFILE).simulate().emit(stage)
 
-        # 2. observation-only input for L1 — manifest deliberately NOT copied here
+        # 2. observation-only input for L1/L2 — manifest deliberately NOT copied here
         for f in OBS_FILES:
             shutil.copy(stage / f, obs / f)
 
@@ -62,7 +65,14 @@ def generate_quad(seed: int, seed_dir, l1_seed: int | None = None) -> Path:
         if rc != 0:
             raise RuntimeError(f"L1 recovery failed for seed={seed} (rc={rc})")
 
-        # 4. assemble EXACTLY the four grader files
+        # 4. L2 decision on the same observation + the L1 card (still manifest-free)
+        rc = decision_run.main(["--data-dir", str(obs),
+                                "--card", str(seed_dir / CARD),
+                                "--out", str(seed_dir / RANKING)])
+        if rc != 0:
+            raise RuntimeError(f"L2 decision failed for seed={seed} (rc={rc})")
+
+        # 5. assemble the grader files (quad + L2 ranking)
         shutil.copy(stage / MANIFEST, seed_dir / MANIFEST)
         for f in OBS_FILES:
             shutil.copy(stage / f, seed_dir / f)
