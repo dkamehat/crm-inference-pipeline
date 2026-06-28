@@ -1,9 +1,17 @@
-# L3 Grading — answer-checking the recovery
+# L3 Grading — answer-checking the recovery and the decision
 
-Machine-scores the L1 recovery card against the world model's ground truth. L3 is
-the **sole layer permitted to read the answer** (`_ground_truth.json`), and unlike
-L0/L1 the **grade is the deliverable**. The card is consumed as a **black box**
-(persisted JSON) — L3 never imports or re-runs L1.
+Machine-scores the L1 recovery card **and** the L2 decision ranking against the world
+model's ground truth. L3 is the **sole layer permitted to read the answer**
+(`_ground_truth.json`), and unlike L0/L1/L2 the **grade is the deliverable**. The card
+and ranking are consumed as **black boxes** (persisted JSON) — L3 never imports or
+re-runs L1/L2.
+
+Two grading modes, same firewall and same single answer-accessor:
+- **Recovery grading** (`grade.py` / `grading.run`) — did L1 find the right segment?
+  TP/FP/FN + magnitude calibration.
+- **Decision grading** (`decision.py` / `grading.decision_run`) — did L2 prioritize the
+  right accounts? **precision@K** of the full-universe ranking against the planted
+  high-value population (L2-DECISION-SPEC §5).
 
 ## v1 scope (L3-GRADING-SPEC §4, §5.1)
 
@@ -54,8 +62,10 @@ grading/
   firewall.py      re-verify the card's provenance attestation   (§4.4)
   match.py         decision-gated, segment-tolerant predicate    (§4.1)
   calibration.py   magnitude calibration vs planted elevation    (§5.1)
-  grade.py         aggregate over a SET of (manifest, card) pairs (§4, §7)
-  run.py           entry point
+  grade.py         aggregate recovery over a SET of pairs         (§4, §7)
+  run.py           recovery-grading entry point
+  decision.py      precision@K of an L2 ranking vs the truth      (L2 spec §5)
+  decision_run.py  decision-grading entry point
   data/            generated reports (git-ignored)
 ```
 
@@ -63,23 +73,27 @@ grading/
 
 ```bash
 # from 00_foundation/
-python -m grading.run --run-dir <dir-of-per-seed-subdirs>   # aggregate
-python -m grading.run                                        # single-pair smoke
+python -m grading.run --run-dir <dir-of-per-seed-subdirs>            # grade recovery
+python -m grading.run                                                # single-pair smoke
+python -m grading.decision_run --run-dir <dir-of-per-seed-subdirs>   # grade the decision (precision@K)
 python -m pytest grading/tests/
 ```
 
 Each run-dir subdir holds `_ground_truth.json`, `recovery_card.json`,
-`accounts.csv`, `opportunities.csv`. L3 does **not** generate these (that needs
-L1) — the multi-seed set comes from an L1/orchestration-lane harness.
+`decision_ranking.json`, `accounts.csv`, `opportunities.csv`. L3 does **not**
+generate these (that needs L1/L2) — the multi-seed set comes from the orchestration
+harness (`harness.run`).
 
 ---
 
 ## 日本語サマリ
 
-L1 の recovery card を世界モデルの地上真実と機械照合し、TP/FP/FN と規模較正を出す
-採点層です。L3 は**答え（`_ground_truth.json`）を読める唯一の層**で、L0/L1 と違い
-**採点結果が成果物**。card は **black box**（永続化 JSON）として読み、L1 を import も
-再実行もしません。
+L1 の recovery card と L2 の decision ranking を世界モデルの地上真実と機械照合する
+採点層です。L3 は**答え（`_ground_truth.json`）を読める唯一の層**で、L0/L1/L2 と違い
+**採点結果が成果物**。card も ranking も **black box**（永続化 JSON）として読み、
+L1/L2 を import も再実行もしません。2つの採点モード（同じ firewall・同じ単一 accessor）：
+**recovery 採点**（L1 が正しいセグメントを見つけたか＝TP/FP/FN ＋規模較正）と
+**decision 採点**（L2 が正しい口座を優先したか＝全口座ランキングの **precision@K**）。
 
 v1 は **TP/FP/FN ＋ 規模較正**のみ。TN は V1 が常に wedge を植えるため採点不能
 （`pending no-wedge profile`・§8.1 ハンドオフ）、post_prob 較正（§5.2）は card が
