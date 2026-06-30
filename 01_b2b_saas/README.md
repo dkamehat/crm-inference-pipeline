@@ -2,6 +2,12 @@
 
 > Sales operations and Customer Success analytics for a fictional B2B SaaS business.
 > 800 accounts, ~1,300 opportunities, 331 active customers. Synthetic data only.
+>
+> This is the **conventional-craft companion** to the flagship inference pipeline in
+> [`../00_foundation/`](../00_foundation/): the SQL + BI work a BizOps analyst ships
+> day-to-day. The flagship shows it can be made *provable*; this shows the everyday
+> fluency it builds on. Each analysis closes with a **Design Note** — the decision it
+> supports and the trade-offs deliberately left out.
 
 ---
 
@@ -23,9 +29,9 @@
 │   ├── 02_pipeline_health.sql          Funnel, stuck deals, rep scorecard
 │   ├── 03_account_insights.sql         Cohort retention, ARPA matrix, loss-reason Pareto
 │   └── 04_customer_health.sql          ARR retention, MAU trends, renewal risk
-├── notebooks/
-│   └── analysis.ipynb           Plotly-rendered analysis (open in Jupyter or view on GitHub)
-└── images/                      Static previews — used in this README
+└── notebooks/
+    └── analysis.ipynb           Plotly-rendered analysis — outputs are committed,
+                                 so it renders inline on GitHub (no run needed)
 ```
 
 ---
@@ -111,3 +117,19 @@ For transparency, here are the actual distributions baked into the synthetic dat
 | Stages | Closed Won 30% / Closed Lost 25% / Active pipeline 45% |
 
 These were chosen to be plausible for a real B2B SaaS in growth stage — not perfectly clean, not pathological.
+
+---
+
+## 日本語サマリ
+
+架空の B2B SaaS 事業に対する **SalesOps / カスタマーサクセス分析**です（口座800・
+商談約1,300・有効顧客331、すべて合成データ）。中核の推論パイプライン
+[`../00_foundation/`](../00_foundation/) が「分析を*証明可能*にできる」ことを示すのに対し、
+こちらは BizOps アナリストが日々こなす **王道の SQL / BI の地力**を示します。
+
+主役は**ノートブック**。各セクションは ①問いの明示 → ②SQL 実行（クエリは `sql/` にも
+単独で配置）→ ③Plotly インタラクティブ図 → ④**Design Note**（その図がどの意思決定を
+支えるか、何をあえて見せないか）で構成。レビュアーが Design Note だけ読めば「この分析は
+筋が良いか」を5分で判断できるように設計しています。出力はコミット済みのため GitHub 上で
+そのまま描画されます。4分析：①セールス実績 ②パイプライン健全性 ③口座インサイト
+④顧客ヘルス。実ドメインの指紋はゼロ（標準的な CRM オブジェクトモデルに準拠）。

@@ -83,6 +83,13 @@ nbconvert-output/
 00_foundation/recovery/data/**/*.csv
 !00_foundation/recovery/data/**/.gitkeep
 
+# L2 decision generated artifacts — PERMANENT RULE: never commit rankings/data.
+# Rankings are reproducible from the (also-ignored) observation + card. Only synthetic
+# in-code fixtures are committed.
+00_foundation/decision/data/**/*.json
+00_foundation/decision/data/**/*.csv
+!00_foundation/decision/data/**/.gitkeep
+
 # L3 grading generated reports — PERMANENT RULE: never commit reports/data.
 # Reports are reproducible from the (manifest, card) pairs; only source + tests commit.
 00_foundation/grading/data/**/*.json

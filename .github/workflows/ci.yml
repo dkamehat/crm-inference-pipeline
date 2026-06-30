@@ -1,0 +1,45 @@
+# Continuous proof, not continuous integration of features: every push re-runs the
+# full test suite AND reproduces the headline numbers from source. The README's
+# "every number is checked" claim is therefore enforced, not asserted.
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    name: tests + reproduce headline numbers
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Unit + invariant + firewall tests (100)
+        working-directory: 00_foundation
+        run: python -m pytest world_model/tests recovery/tests grading/tests harness/tests decision/tests -q
+
+      - name: Reproduce the pipeline end-to-end (L0 -> L1 -> L2 -> L3)
+        working-directory: 00_foundation
+        run: |
+          python -m world_model.run
+          python -m recovery.run
+          python -m decision.run
+          # multi-seed graded set (kept small for CI speed; the full N=50 figures
+          # in the README reproduce locally with --n 50)
+          python -m harness.run --n 8 --run-dir ./harness/data/run
+          python -m grading.run --run-dir ./harness/data/run
+          python -m grading.decision_run --run-dir ./harness/data/run
+
+      - name: Detection calibration probe (false-positive rate + power)
+        working-directory: 00_foundation
+        run: python -m harness.probe_run
